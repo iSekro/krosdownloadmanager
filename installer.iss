@@ -65,14 +65,18 @@ var
   ExtPath: String;
   JsonContent: String;
   ManifestPath: String;
+  AppExePath: String;
 begin
   ExtPath := ExpandConstant('{app}\extension');
   ManifestPath := ExtPath + '\native_messaging_host.json';
 
+  AppExePath := ExpandConstant('{app}\KrosDownloadManager.exe');
+  StringChange(AppExePath, '\', '\\');
+
   JsonContent := '{' + #13#10 +
     '  "name": "com.krosdownloadmanager.host",' + #13#10 +
     '  "description": "KrosDownloadManager Native Messaging Host",' + #13#10 +
-    '  "path": "' + StringReplace(ExpandConstant('{app}\KrosDownloadManager.exe'), '\', '\\', [rfReplaceAll]) + '",' + #13#10 +
+    '  "path": "' + AppExePath + '",' + #13#10 +
     '  "type": "stdio",' + #13#10 +
     '  "allowed_origins": [' + #13#10 +
     '    "chrome-extension://*/"' + #13#10 +
