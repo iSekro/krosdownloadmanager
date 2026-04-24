@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "krosdownloadmanager"
+version = "1.0.0"
+description = "KrosDownloadManager - A portable download manager for Windows similar to Internet Download Manager"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [
+    {name = "iSekro"},
+]
+dependencies = [
+    "customtkinter>=5.2.0",
+    "requests>=2.31.0",
+    "Pillow>=10.0.0",
+    "tqdm>=4.66.0",
+    "aiohttp>=3.9.0",
+    "pyperclip>=1.8.2",
+]
+
+[project.optional-dependencies]
+build = [
+    "pyinstaller>=6.0.0",
+]
+dev = [
+    "ruff>=0.1.0",
+    "pytest>=7.0.0",
+]
+
+[project.scripts]
+krosdownloadmanager = "krosdownloadmanager.main:main"
+
+[project.gui-scripts]
+KrosDownloadManager = "krosdownloadmanager.main:main"
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
