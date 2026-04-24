@@ -1,14 +1,13 @@
 """Tests for the download engine."""
 
-import os
 import tempfile
 
+from krosdownloadmanager.core.config import AppConfig, ConfigManager
 from krosdownloadmanager.core.download_engine import (
     DownloadItem,
     DownloadStatus,
     extract_filename_from_url,
 )
-from krosdownloadmanager.core.config import AppConfig, ConfigManager
 
 
 def test_download_item_creation():

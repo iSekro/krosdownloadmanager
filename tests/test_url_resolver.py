@@ -1,15 +1,15 @@
 """Tests for the URL resolver module."""
 
 from krosdownloadmanager.utils.url_resolver import (
+    _is_dropbox,
+    _is_google_drive,
+    _is_mediafire,
+    _is_sourceforge,
+    _resolve_dropbox,
+    _resolve_google_drive,
+    _resolve_sourceforge,
     needs_resolution,
     resolve_url,
-    _is_mediafire,
-    _is_google_drive,
-    _is_dropbox,
-    _is_sourceforge,
-    _resolve_google_drive,
-    _resolve_dropbox,
-    _resolve_sourceforge,
 )
 
 

@@ -19,22 +19,31 @@ from krosdownloadmanager.utils.helpers import (
 )
 
 COLORS = {
-    "bg_dark": "#1a1a2e",
-    "bg_medium": "#16213e",
-    "bg_light": "#0f3460",
-    "accent": "#e94560",
-    "accent_hover": "#ff6b81",
-    "text_primary": "#ffffff",
-    "text_secondary": "#a0a0b0",
-    "success": "#2ecc71",
-    "warning": "#f39c12",
-    "error": "#e74c3c",
-    "progress_bg": "#2c2c3e",
-    "row_even": "#1e1e32",
-    "row_odd": "#252540",
-    "row_hover": "#2a2a50",
-    "border": "#3a3a5c",
+    "bg_dark": "#1c1c1e",
+    "bg_medium": "#2c2c2e",
+    "bg_light": "#3a3a3c",
+    "bg_sidebar": "#252528",
+    "bg_elevated": "#323234",
+    "accent": "#0a84ff",
+    "accent_hover": "#409cff",
+    "accent_subtle": "#0a84ff20",
+    "text_primary": "#f5f5f7",
+    "text_secondary": "#86868b",
+    "text_tertiary": "#636366",
+    "success": "#30d158",
+    "warning": "#ff9f0a",
+    "error": "#ff453a",
+    "progress_bg": "#38383a",
+    "row_even": "#1c1c1e",
+    "row_odd": "#222224",
+    "row_hover": "#2c2c2e",
+    "border": "#38383a",
+    "border_light": "#48484a",
+    "separator": "#2c2c2e",
+    "glass": "#2c2c2e",
 }
+
+FONT_FAMILY = "Segoe UI"
 
 
 class DownloadRow(ctk.CTkFrame):
@@ -48,92 +57,110 @@ class DownloadRow(ctk.CTkFrame):
 
         self.configure(
             fg_color=COLORS["row_even"],
-            corner_radius=4,
-            height=56,
+            corner_radius=10,
+            height=62,
+            border_width=1,
+            border_color=COLORS["border"],
         )
 
         self.grid_columnconfigure(1, weight=1)
 
         icon = self._get_file_icon()
         self.icon_label = ctk.CTkLabel(
-            self, text=icon, font=("Segoe UI Emoji", 20), width=40,
+            self, text=icon, font=("Segoe UI Emoji", 18),
+            width=44, height=44,
             text_color=COLORS["accent"],
+            fg_color=COLORS["bg_elevated"],
+            corner_radius=10,
         )
-        self.icon_label.grid(row=0, column=0, padx=(10, 5), pady=8, rowspan=2)
+        self.icon_label.grid(row=0, column=0, padx=(12, 8), pady=9, rowspan=2)
 
         self.name_label = ctk.CTkLabel(
-            self, text=item.filename, font=("Segoe UI", 13, "bold"),
+            self, text=item.filename, font=(FONT_FAMILY, 13, "bold"),
             text_color=COLORS["text_primary"], anchor="w",
         )
-        self.name_label.grid(row=0, column=1, padx=5, pady=(8, 0), sticky="w")
+        self.name_label.grid(row=0, column=1, padx=4, pady=(10, 0), sticky="w")
 
         info_frame = ctk.CTkFrame(self, fg_color="transparent")
-        info_frame.grid(row=1, column=1, padx=5, pady=(0, 8), sticky="w")
+        info_frame.grid(row=1, column=1, padx=4, pady=(0, 10), sticky="w")
 
-        size_text = format_size(item.file_size) if item.file_size > 0 else "Unknown"
+        size_text = format_size(item.file_size) if item.file_size > 0 else "Desconocido"
         self.size_label = ctk.CTkLabel(
-            info_frame, text=size_text, font=("Segoe UI", 11),
+            info_frame, text=size_text, font=(FONT_FAMILY, 10),
             text_color=COLORS["text_secondary"],
         )
-        self.size_label.pack(side="left", padx=(0, 15))
+        self.size_label.pack(side="left", padx=(0, 12))
 
         self.speed_label = ctk.CTkLabel(
-            info_frame, text="", font=("Segoe UI", 11),
-            text_color=COLORS["text_secondary"],
+            info_frame, text="", font=(FONT_FAMILY, 10),
+            text_color=COLORS["text_tertiary"],
         )
-        self.speed_label.pack(side="left", padx=(0, 15))
+        self.speed_label.pack(side="left", padx=(0, 12))
 
         self.eta_label = ctk.CTkLabel(
-            info_frame, text="", font=("Segoe UI", 11),
-            text_color=COLORS["text_secondary"],
+            info_frame, text="", font=(FONT_FAMILY, 10),
+            text_color=COLORS["text_tertiary"],
         )
-        self.eta_label.pack(side="left", padx=(0, 15))
+        self.eta_label.pack(side="left", padx=(0, 12))
 
         self.progress_bar = ctk.CTkProgressBar(
-            self, width=180, height=14,
+            self, width=160, height=6,
             progress_color=COLORS["accent"],
             fg_color=COLORS["progress_bg"],
-            corner_radius=7,
+            corner_radius=3,
         )
-        self.progress_bar.grid(row=0, column=2, padx=10, pady=8, rowspan=2, sticky="e")
+        self.progress_bar.grid(row=0, column=2, padx=8, pady=9, rowspan=2, sticky="e")
         self.progress_bar.set(item.progress / 100.0 if item.progress else 0)
 
         self.percent_label = ctk.CTkLabel(
-            self, text=f"{item.progress:.0f}%", font=("Segoe UI", 12, "bold"),
-            text_color=COLORS["text_primary"], width=50,
+            self, text=f"{item.progress:.0f}%", font=(FONT_FAMILY, 11),
+            text_color=COLORS["text_secondary"], width=44,
         )
-        self.percent_label.grid(row=0, column=3, padx=5, pady=8, rowspan=2)
+        self.percent_label.grid(row=0, column=3, padx=4, pady=9, rowspan=2)
 
         self.status_label = ctk.CTkLabel(
-            self, text=self._status_text(), font=("Segoe UI", 11, "bold"),
-            text_color=self._status_color(), width=90,
+            self, text=self._status_text(), font=(FONT_FAMILY, 10, "bold"),
+            text_color=self._status_color(), width=80,
         )
-        self.status_label.grid(row=0, column=4, padx=5, pady=8, rowspan=2)
+        self.status_label.grid(row=0, column=4, padx=4, pady=9, rowspan=2)
 
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        btn_frame.grid(row=0, column=5, padx=(5, 10), pady=8, rowspan=2)
+        btn_frame.grid(row=0, column=5, padx=(4, 12), pady=9, rowspan=2)
 
         self.action_btn = ctk.CTkButton(
-            btn_frame, text=self._action_icon(), width=32, height=32,
-            font=("Segoe UI Emoji", 14),
-            fg_color=COLORS["bg_light"], hover_color=COLORS["accent"],
+            btn_frame, text=self._action_icon(), width=30, height=30,
+            font=("Segoe UI Emoji", 13),
+            fg_color=COLORS["bg_elevated"], hover_color=COLORS["accent"],
             command=self._on_action,
-            corner_radius=6,
+            corner_radius=8,
+            border_width=0,
         )
         self.action_btn.pack(side="left", padx=2)
 
         self.cancel_btn = ctk.CTkButton(
-            btn_frame, text="\u2716", width=32, height=32,
-            font=("Segoe UI Emoji", 14),
-            fg_color=COLORS["bg_light"], hover_color=COLORS["error"],
+            btn_frame, text="\u2716", width=30, height=30,
+            font=("Segoe UI Emoji", 13),
+            fg_color=COLORS["bg_elevated"], hover_color=COLORS["error"],
             command=self._on_cancel,
-            corner_radius=6,
+            corner_radius=8,
+            border_width=0,
         )
         self.cancel_btn.pack(side="left", padx=2)
 
         for widget in [self, self.icon_label, self.name_label, info_frame]:
             widget.bind("<Button-1>", self._on_click)
             widget.bind("<Button-3>", self._on_right_click)
+
+        self.bind("<Enter>", self._on_hover_enter)
+        self.bind("<Leave>", self._on_hover_leave)
+
+    def _on_hover_enter(self, event=None) -> None:
+        if not self.selected:
+            self.configure(fg_color=COLORS["row_hover"], border_color=COLORS["border_light"])
+
+    def _on_hover_leave(self, event=None) -> None:
+        if not self.selected:
+            self.configure(fg_color=COLORS["row_even"], border_color=COLORS["border"])
 
     def _get_file_icon(self) -> str:
         ext = os.path.splitext(self.item.filename)[1].lower()
@@ -208,7 +235,10 @@ class DownloadRow(ctk.CTkFrame):
 
     def set_selected(self, selected: bool) -> None:
         self.selected = selected
-        self.configure(fg_color=COLORS["row_hover"] if selected else COLORS["row_even"])
+        if selected:
+            self.configure(fg_color=COLORS["bg_elevated"], border_color=COLORS["accent"])
+        else:
+            self.configure(fg_color=COLORS["row_even"], border_color=COLORS["border"])
 
     def update_display(self) -> None:
         self.progress_bar.set(self.item.progress / 100.0)
@@ -236,8 +266,8 @@ class AddDownloadDialog(ctk.CTkToplevel):
         self.app = app
         self.result = None
 
-        self.title("Nueva Descarga - KrosDownloadManager")
-        self.geometry("600x420")
+        self.title("Nueva Descarga")
+        self.geometry("560x400")
         self.configure(fg_color=COLORS["bg_dark"])
         self.resizable(False, False)
         self.transient(master)
@@ -246,23 +276,23 @@ class AddDownloadDialog(ctk.CTkToplevel):
         self.after(100, self._center_window)
 
         header = ctk.CTkLabel(
-            self, text="\u2B07 Nueva Descarga",
-            font=("Segoe UI", 20, "bold"),
-            text_color=COLORS["accent"],
+            self, text="Nueva Descarga",
+            font=(FONT_FAMILY, 18, "bold"),
+            text_color=COLORS["text_primary"],
         )
-        header.pack(pady=(20, 15))
+        header.pack(pady=(24, 16))
 
         url_frame = ctk.CTkFrame(self, fg_color="transparent")
-        url_frame.pack(fill="x", padx=30, pady=5)
-        ctk.CTkLabel(url_frame, text="URL:", font=("Segoe UI", 13),
-                      text_color=COLORS["text_primary"]).pack(anchor="w")
+        url_frame.pack(fill="x", padx=28, pady=4)
+        ctk.CTkLabel(url_frame, text="URL", font=(FONT_FAMILY, 11),
+                      text_color=COLORS["text_secondary"]).pack(anchor="w")
         self.url_entry = ctk.CTkEntry(
-            url_frame, height=38, font=("Segoe UI", 12),
+            url_frame, height=36, font=(FONT_FAMILY, 12),
             fg_color=COLORS["bg_medium"], border_color=COLORS["border"],
-            text_color=COLORS["text_primary"],
+            text_color=COLORS["text_primary"], corner_radius=8,
             placeholder_text="https://ejemplo.com/archivo.zip",
         )
-        self.url_entry.pack(fill="x", pady=(5, 0))
+        self.url_entry.pack(fill="x", pady=(4, 0))
 
         try:
             import pyperclip
@@ -273,83 +303,85 @@ class AddDownloadDialog(ctk.CTkToplevel):
             pass
 
         name_frame = ctk.CTkFrame(self, fg_color="transparent")
-        name_frame.pack(fill="x", padx=30, pady=5)
-        ctk.CTkLabel(name_frame, text="Nombre del archivo (opcional):", font=("Segoe UI", 13),
-                      text_color=COLORS["text_primary"]).pack(anchor="w")
+        name_frame.pack(fill="x", padx=28, pady=4)
+        ctk.CTkLabel(name_frame, text="Nombre del archivo (opcional)", font=(FONT_FAMILY, 11),
+                      text_color=COLORS["text_secondary"]).pack(anchor="w")
         self.name_entry = ctk.CTkEntry(
-            name_frame, height=38, font=("Segoe UI", 12),
+            name_frame, height=36, font=(FONT_FAMILY, 12),
             fg_color=COLORS["bg_medium"], border_color=COLORS["border"],
-            text_color=COLORS["text_primary"],
+            text_color=COLORS["text_primary"], corner_radius=8,
             placeholder_text="Se detecta autom\u00e1ticamente",
         )
-        self.name_entry.pack(fill="x", pady=(5, 0))
+        self.name_entry.pack(fill="x", pady=(4, 0))
 
         dir_frame = ctk.CTkFrame(self, fg_color="transparent")
-        dir_frame.pack(fill="x", padx=30, pady=5)
-        ctk.CTkLabel(dir_frame, text="Guardar en:", font=("Segoe UI", 13),
-                      text_color=COLORS["text_primary"]).pack(anchor="w")
+        dir_frame.pack(fill="x", padx=28, pady=4)
+        ctk.CTkLabel(dir_frame, text="Guardar en", font=(FONT_FAMILY, 11),
+                      text_color=COLORS["text_secondary"]).pack(anchor="w")
 
         dir_inner = ctk.CTkFrame(dir_frame, fg_color="transparent")
-        dir_inner.pack(fill="x", pady=(5, 0))
+        dir_inner.pack(fill="x", pady=(4, 0))
         dir_inner.grid_columnconfigure(0, weight=1)
 
         self.dir_entry = ctk.CTkEntry(
-            dir_inner, height=38, font=("Segoe UI", 12),
+            dir_inner, height=36, font=(FONT_FAMILY, 12),
             fg_color=COLORS["bg_medium"], border_color=COLORS["border"],
-            text_color=COLORS["text_primary"],
+            text_color=COLORS["text_primary"], corner_radius=8,
         )
-        self.dir_entry.grid(row=0, column=0, sticky="ew", padx=(0, 8))
+        self.dir_entry.grid(row=0, column=0, sticky="ew", padx=(0, 6))
         self.dir_entry.insert(0, app.config_manager.config.download_dir)
 
         browse_btn = ctk.CTkButton(
-            dir_inner, text="\U0001F4C1", width=40, height=38,
-            font=("Segoe UI Emoji", 16),
-            fg_color=COLORS["bg_light"], hover_color=COLORS["accent"],
-            command=self._browse_dir,
+            dir_inner, text="\U0001F4C1", width=36, height=36,
+            font=("Segoe UI Emoji", 14),
+            fg_color=COLORS["bg_elevated"], hover_color=COLORS["bg_light"],
+            command=self._browse_dir, corner_radius=8,
         )
         browse_btn.grid(row=0, column=1)
 
         conn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        conn_frame.pack(fill="x", padx=30, pady=5)
-        ctk.CTkLabel(conn_frame, text="Conexiones:", font=("Segoe UI", 13),
-                      text_color=COLORS["text_primary"]).pack(side="left")
+        conn_frame.pack(fill="x", padx=28, pady=4)
+        ctk.CTkLabel(conn_frame, text="Conexiones", font=(FONT_FAMILY, 11),
+                      text_color=COLORS["text_secondary"]).pack(side="left")
         self.conn_slider = ctk.CTkSlider(
             conn_frame, from_=1, to=16, number_of_steps=15,
-            width=200, progress_color=COLORS["accent"],
+            width=180, progress_color=COLORS["accent"],
             fg_color=COLORS["progress_bg"],
             button_color=COLORS["accent"],
+            button_hover_color=COLORS["accent_hover"],
         )
         self.conn_slider.set(app.config_manager.config.default_connections)
         self.conn_slider.pack(side="left", padx=10)
         self.conn_label = ctk.CTkLabel(
             conn_frame, text=str(app.config_manager.config.default_connections),
-            font=("Segoe UI", 13, "bold"),
-            text_color=COLORS["accent"], width=30,
+            font=(FONT_FAMILY, 12, "bold"),
+            text_color=COLORS["accent"], width=28,
         )
         self.conn_label.pack(side="left")
         self.conn_slider.configure(command=self._on_conn_change)
 
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        btn_frame.pack(fill="x", padx=30, pady=(20, 15))
+        btn_frame.pack(fill="x", padx=28, pady=(18, 16))
 
         ctk.CTkButton(
-            btn_frame, text="Descargar", font=("Segoe UI", 14, "bold"),
+            btn_frame, text="Descargar", font=(FONT_FAMILY, 13, "bold"),
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
-            height=40, corner_radius=8,
+            height=38, corner_radius=10,
             command=self._on_download,
-        ).pack(side="right", padx=(10, 0))
+        ).pack(side="right", padx=(8, 0))
 
         ctk.CTkButton(
-            btn_frame, text="Cancelar", font=("Segoe UI", 14),
-            fg_color=COLORS["bg_light"], hover_color=COLORS["border"],
-            height=40, corner_radius=8,
+            btn_frame, text="Cancelar", font=(FONT_FAMILY, 13),
+            fg_color=COLORS["bg_elevated"], hover_color=COLORS["bg_light"],
+            text_color=COLORS["text_secondary"],
+            height=38, corner_radius=10,
             command=self.destroy,
         ).pack(side="right")
 
     def _center_window(self) -> None:
         self.update_idletasks()
-        x = self.master.winfo_x() + (self.master.winfo_width() - 600) // 2
-        y = self.master.winfo_y() + (self.master.winfo_height() - 420) // 2
+        x = self.master.winfo_x() + (self.master.winfo_width() - 560) // 2
+        y = self.master.winfo_y() + (self.master.winfo_height() - 400) // 2
         self.geometry(f"+{x}+{y}")
 
     def _browse_dir(self) -> None:
@@ -396,8 +428,8 @@ class BatchDownloadDialog(ctk.CTkToplevel):
         self.app = app
         self.result: list[dict] | None = None
 
-        self.title("Descarga por lotes - KrosDownloadManager")
-        self.geometry("650x520")
+        self.title("Descarga por Lotes")
+        self.geometry("600x500")
         self.configure(fg_color=COLORS["bg_dark"])
         self.resizable(False, False)
         self.transient(master)
@@ -406,88 +438,90 @@ class BatchDownloadDialog(ctk.CTkToplevel):
         self.after(100, self._center_window)
 
         header = ctk.CTkLabel(
-            self, text="\U0001F4E5 Descarga por Lotes",
-            font=("Segoe UI", 20, "bold"),
-            text_color=COLORS["accent"],
+            self, text="Descarga por Lotes",
+            font=(FONT_FAMILY, 18, "bold"),
+            text_color=COLORS["text_primary"],
         )
-        header.pack(pady=(20, 10))
+        header.pack(pady=(24, 12))
 
         ctk.CTkLabel(
-            self, text="Ingresa una URL por l\u00ednea:",
-            font=("Segoe UI", 12),
+            self, text="Ingresa una URL por l\u00ednea",
+            font=(FONT_FAMILY, 11),
             text_color=COLORS["text_secondary"],
-        ).pack(anchor="w", padx=30)
+        ).pack(anchor="w", padx=28)
 
         self.urls_text = ctk.CTkTextbox(
-            self, height=220, font=("Consolas", 12),
+            self, height=200, font=("Consolas", 11),
             fg_color=COLORS["bg_medium"], border_color=COLORS["border"],
             text_color=COLORS["text_primary"],
-            corner_radius=8,
+            corner_radius=10,
         )
-        self.urls_text.pack(fill="x", padx=30, pady=(5, 10))
+        self.urls_text.pack(fill="x", padx=28, pady=(4, 8))
 
         dir_frame = ctk.CTkFrame(self, fg_color="transparent")
-        dir_frame.pack(fill="x", padx=30, pady=5)
-        ctk.CTkLabel(dir_frame, text="Guardar en:", font=("Segoe UI", 13),
-                      text_color=COLORS["text_primary"]).pack(anchor="w")
+        dir_frame.pack(fill="x", padx=28, pady=4)
+        ctk.CTkLabel(dir_frame, text="Guardar en", font=(FONT_FAMILY, 11),
+                      text_color=COLORS["text_secondary"]).pack(anchor="w")
 
         dir_inner = ctk.CTkFrame(dir_frame, fg_color="transparent")
-        dir_inner.pack(fill="x", pady=(5, 0))
+        dir_inner.pack(fill="x", pady=(4, 0))
         dir_inner.grid_columnconfigure(0, weight=1)
 
         self.dir_entry = ctk.CTkEntry(
-            dir_inner, height=38, font=("Segoe UI", 12),
+            dir_inner, height=36, font=(FONT_FAMILY, 12),
             fg_color=COLORS["bg_medium"], border_color=COLORS["border"],
-            text_color=COLORS["text_primary"],
+            text_color=COLORS["text_primary"], corner_radius=8,
         )
-        self.dir_entry.grid(row=0, column=0, sticky="ew", padx=(0, 8))
+        self.dir_entry.grid(row=0, column=0, sticky="ew", padx=(0, 6))
         self.dir_entry.insert(0, app.config_manager.config.download_dir)
 
         ctk.CTkButton(
-            dir_inner, text="\U0001F4C1", width=40, height=38,
-            fg_color=COLORS["bg_light"], hover_color=COLORS["accent"],
-            command=self._browse_dir,
+            dir_inner, text="\U0001F4C1", width=36, height=36,
+            fg_color=COLORS["bg_elevated"], hover_color=COLORS["bg_light"],
+            command=self._browse_dir, corner_radius=8,
         ).grid(row=0, column=1)
 
         conn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        conn_frame.pack(fill="x", padx=30, pady=5)
-        ctk.CTkLabel(conn_frame, text="Conexiones por descarga:", font=("Segoe UI", 13),
-                      text_color=COLORS["text_primary"]).pack(side="left")
+        conn_frame.pack(fill="x", padx=28, pady=4)
+        ctk.CTkLabel(conn_frame, text="Conexiones", font=(FONT_FAMILY, 11),
+                      text_color=COLORS["text_secondary"]).pack(side="left")
         self.conn_slider = ctk.CTkSlider(
             conn_frame, from_=1, to=16, number_of_steps=15,
-            width=180, progress_color=COLORS["accent"],
+            width=160, progress_color=COLORS["accent"],
             fg_color=COLORS["progress_bg"], button_color=COLORS["accent"],
+            button_hover_color=COLORS["accent_hover"],
         )
         self.conn_slider.set(app.config_manager.config.default_connections)
         self.conn_slider.pack(side="left", padx=10)
         self.conn_label = ctk.CTkLabel(
             conn_frame, text=str(app.config_manager.config.default_connections),
-            font=("Segoe UI", 13, "bold"), text_color=COLORS["accent"], width=30,
+            font=(FONT_FAMILY, 12, "bold"), text_color=COLORS["accent"], width=28,
         )
         self.conn_label.pack(side="left")
         self.conn_slider.configure(command=lambda v: self.conn_label.configure(text=str(int(v))))
 
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        btn_frame.pack(fill="x", padx=30, pady=(15, 15))
+        btn_frame.pack(fill="x", padx=28, pady=(14, 16))
 
         ctk.CTkButton(
-            btn_frame, text="Descargar Todo", font=("Segoe UI", 14, "bold"),
+            btn_frame, text="Descargar Todo", font=(FONT_FAMILY, 13, "bold"),
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
-            height=40, corner_radius=8,
+            height=38, corner_radius=10,
             command=self._on_download,
-        ).pack(side="right", padx=(10, 0))
+        ).pack(side="right", padx=(8, 0))
 
         ctk.CTkButton(
-            btn_frame, text="Cancelar", font=("Segoe UI", 14),
-            fg_color=COLORS["bg_light"], hover_color=COLORS["border"],
-            height=40, corner_radius=8,
+            btn_frame, text="Cancelar", font=(FONT_FAMILY, 13),
+            fg_color=COLORS["bg_elevated"], hover_color=COLORS["bg_light"],
+            text_color=COLORS["text_secondary"],
+            height=38, corner_radius=10,
             command=self.destroy,
         ).pack(side="right")
 
     def _center_window(self) -> None:
         self.update_idletasks()
-        x = self.master.winfo_x() + (self.master.winfo_width() - 650) // 2
-        y = self.master.winfo_y() + (self.master.winfo_height() - 520) // 2
+        x = self.master.winfo_x() + (self.master.winfo_width() - 600) // 2
+        y = self.master.winfo_y() + (self.master.winfo_height() - 500) // 2
         self.geometry(f"+{x}+{y}")
 
     def _browse_dir(self) -> None:
@@ -532,8 +566,8 @@ class ScheduleDialog(ctk.CTkToplevel):
         self.app = app
         self.result = None
 
-        self.title("Programar Descarga - KrosDownloadManager")
-        self.geometry("600x480")
+        self.title("Programar Descarga")
+        self.geometry("560x460")
         self.configure(fg_color=COLORS["bg_dark"])
         self.resizable(False, False)
         self.transient(master)
@@ -542,100 +576,102 @@ class ScheduleDialog(ctk.CTkToplevel):
         self.after(100, self._center_window)
 
         header = ctk.CTkLabel(
-            self, text="\u23F0 Programar Descarga",
-            font=("Segoe UI", 20, "bold"),
-            text_color=COLORS["accent"],
+            self, text="Programar Descarga",
+            font=(FONT_FAMILY, 18, "bold"),
+            text_color=COLORS["text_primary"],
         )
-        header.pack(pady=(20, 15))
+        header.pack(pady=(24, 16))
 
         url_frame = ctk.CTkFrame(self, fg_color="transparent")
-        url_frame.pack(fill="x", padx=30, pady=5)
-        ctk.CTkLabel(url_frame, text="URL:", font=("Segoe UI", 13),
-                      text_color=COLORS["text_primary"]).pack(anchor="w")
+        url_frame.pack(fill="x", padx=28, pady=4)
+        ctk.CTkLabel(url_frame, text="URL", font=(FONT_FAMILY, 11),
+                      text_color=COLORS["text_secondary"]).pack(anchor="w")
         self.url_entry = ctk.CTkEntry(
-            url_frame, height=38, font=("Segoe UI", 12),
+            url_frame, height=36, font=(FONT_FAMILY, 12),
             fg_color=COLORS["bg_medium"], border_color=COLORS["border"],
-            text_color=COLORS["text_primary"],
+            text_color=COLORS["text_primary"], corner_radius=8,
             placeholder_text="https://ejemplo.com/archivo.zip",
         )
-        self.url_entry.pack(fill="x", pady=(5, 0))
+        self.url_entry.pack(fill="x", pady=(4, 0))
 
         dir_frame = ctk.CTkFrame(self, fg_color="transparent")
-        dir_frame.pack(fill="x", padx=30, pady=5)
-        ctk.CTkLabel(dir_frame, text="Guardar en:", font=("Segoe UI", 13),
-                      text_color=COLORS["text_primary"]).pack(anchor="w")
+        dir_frame.pack(fill="x", padx=28, pady=4)
+        ctk.CTkLabel(dir_frame, text="Guardar en", font=(FONT_FAMILY, 11),
+                      text_color=COLORS["text_secondary"]).pack(anchor="w")
         dir_inner = ctk.CTkFrame(dir_frame, fg_color="transparent")
-        dir_inner.pack(fill="x", pady=(5, 0))
+        dir_inner.pack(fill="x", pady=(4, 0))
         dir_inner.grid_columnconfigure(0, weight=1)
         self.dir_entry = ctk.CTkEntry(
-            dir_inner, height=38, font=("Segoe UI", 12),
+            dir_inner, height=36, font=(FONT_FAMILY, 12),
             fg_color=COLORS["bg_medium"], border_color=COLORS["border"],
-            text_color=COLORS["text_primary"],
+            text_color=COLORS["text_primary"], corner_radius=8,
         )
-        self.dir_entry.grid(row=0, column=0, sticky="ew", padx=(0, 8))
+        self.dir_entry.grid(row=0, column=0, sticky="ew", padx=(0, 6))
         self.dir_entry.insert(0, app.config_manager.config.download_dir)
         ctk.CTkButton(
-            dir_inner, text="\U0001F4C1", width=40, height=38,
-            fg_color=COLORS["bg_light"], hover_color=COLORS["accent"],
-            command=self._browse_dir,
+            dir_inner, text="\U0001F4C1", width=36, height=36,
+            fg_color=COLORS["bg_elevated"], hover_color=COLORS["bg_light"],
+            command=self._browse_dir, corner_radius=8,
         ).grid(row=0, column=1)
 
         time_frame = ctk.CTkFrame(self, fg_color="transparent")
-        time_frame.pack(fill="x", padx=30, pady=10)
-        ctk.CTkLabel(time_frame, text="Fecha y hora (AAAA-MM-DD HH:MM):", font=("Segoe UI", 13),
-                      text_color=COLORS["text_primary"]).pack(anchor="w")
+        time_frame.pack(fill="x", padx=28, pady=8)
+        ctk.CTkLabel(time_frame, text="Fecha y hora (AAAA-MM-DD HH:MM)", font=(FONT_FAMILY, 11),
+                      text_color=COLORS["text_secondary"]).pack(anchor="w")
 
         import time as time_mod
         default_time = time_mod.strftime("%Y-%m-%d %H:%M", time_mod.localtime(time_mod.time() + 3600))
 
         self.time_entry = ctk.CTkEntry(
-            time_frame, height=38, font=("Segoe UI", 12),
+            time_frame, height=36, font=(FONT_FAMILY, 12),
             fg_color=COLORS["bg_medium"], border_color=COLORS["border"],
-            text_color=COLORS["text_primary"],
+            text_color=COLORS["text_primary"], corner_radius=8,
             placeholder_text="2025-12-31 23:00",
         )
-        self.time_entry.pack(fill="x", pady=(5, 0))
+        self.time_entry.pack(fill="x", pady=(4, 0))
         self.time_entry.insert(0, default_time)
 
         conn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        conn_frame.pack(fill="x", padx=30, pady=5)
-        ctk.CTkLabel(conn_frame, text="Conexiones:", font=("Segoe UI", 13),
-                      text_color=COLORS["text_primary"]).pack(side="left")
+        conn_frame.pack(fill="x", padx=28, pady=4)
+        ctk.CTkLabel(conn_frame, text="Conexiones", font=(FONT_FAMILY, 11),
+                      text_color=COLORS["text_secondary"]).pack(side="left")
         self.conn_slider = ctk.CTkSlider(
             conn_frame, from_=1, to=16, number_of_steps=15,
-            width=200, progress_color=COLORS["accent"],
+            width=180, progress_color=COLORS["accent"],
             fg_color=COLORS["progress_bg"], button_color=COLORS["accent"],
+            button_hover_color=COLORS["accent_hover"],
         )
         self.conn_slider.set(app.config_manager.config.default_connections)
         self.conn_slider.pack(side="left", padx=10)
         self.conn_label = ctk.CTkLabel(
             conn_frame, text=str(app.config_manager.config.default_connections),
-            font=("Segoe UI", 13, "bold"), text_color=COLORS["accent"], width=30,
+            font=(FONT_FAMILY, 12, "bold"), text_color=COLORS["accent"], width=28,
         )
         self.conn_label.pack(side="left")
         self.conn_slider.configure(command=lambda v: self.conn_label.configure(text=str(int(v))))
 
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        btn_frame.pack(fill="x", padx=30, pady=(20, 15))
+        btn_frame.pack(fill="x", padx=28, pady=(18, 16))
 
         ctk.CTkButton(
-            btn_frame, text="Programar", font=("Segoe UI", 14, "bold"),
+            btn_frame, text="Programar", font=(FONT_FAMILY, 13, "bold"),
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
-            height=40, corner_radius=8,
+            height=38, corner_radius=10,
             command=self._on_schedule,
-        ).pack(side="right", padx=(10, 0))
+        ).pack(side="right", padx=(8, 0))
 
         ctk.CTkButton(
-            btn_frame, text="Cancelar", font=("Segoe UI", 14),
-            fg_color=COLORS["bg_light"], hover_color=COLORS["border"],
-            height=40, corner_radius=8,
+            btn_frame, text="Cancelar", font=(FONT_FAMILY, 13),
+            fg_color=COLORS["bg_elevated"], hover_color=COLORS["bg_light"],
+            text_color=COLORS["text_secondary"],
+            height=38, corner_radius=10,
             command=self.destroy,
         ).pack(side="right")
 
     def _center_window(self) -> None:
         self.update_idletasks()
-        x = self.master.winfo_x() + (self.master.winfo_width() - 600) // 2
-        y = self.master.winfo_y() + (self.master.winfo_height() - 480) // 2
+        x = self.master.winfo_x() + (self.master.winfo_width() - 560) // 2
+        y = self.master.winfo_y() + (self.master.winfo_height() - 460) // 2
         self.geometry(f"+{x}+{y}")
 
     def _browse_dir(self) -> None:
@@ -674,7 +710,7 @@ class ChecksumDialog(ctk.CTkToplevel):
     def __init__(self, master, item: DownloadItem):
         super().__init__(master)
         self.title(f"Checksums - {item.filename}")
-        self.geometry("520x280")
+        self.geometry("500x260")
         self.configure(fg_color=COLORS["bg_dark"])
         self.resizable(False, False)
         self.transient(master)
@@ -683,42 +719,43 @@ class ChecksumDialog(ctk.CTkToplevel):
         self.after(100, self._center_window)
 
         ctk.CTkLabel(
-            self, text="\U0001F512 Verificaci\u00f3n de integridad",
-            font=("Segoe UI", 18, "bold"),
-            text_color=COLORS["accent"],
-        ).pack(pady=(20, 15))
+            self, text="Verificaci\u00f3n de integridad",
+            font=(FONT_FAMILY, 16, "bold"),
+            text_color=COLORS["text_primary"],
+        ).pack(pady=(20, 12))
 
         ctk.CTkLabel(
-            self, text=f"Archivo: {item.filename}",
-            font=("Segoe UI", 12),
-            text_color=COLORS["text_primary"],
-        ).pack(anchor="w", padx=30, pady=(0, 10))
+            self, text=item.filename,
+            font=(FONT_FAMILY, 11),
+            text_color=COLORS["text_secondary"],
+        ).pack(anchor="w", padx=28, pady=(0, 10))
 
-        for label, value in [("MD5:", item.checksum_md5), ("SHA-256:", item.checksum_sha256)]:
+        for label, value in [("MD5", item.checksum_md5), ("SHA-256", item.checksum_sha256)]:
             frame = ctk.CTkFrame(self, fg_color="transparent")
-            frame.pack(fill="x", padx=30, pady=3)
-            ctk.CTkLabel(frame, text=label, font=("Segoe UI", 12, "bold"),
-                          text_color=COLORS["text_primary"], width=80).pack(side="left")
+            frame.pack(fill="x", padx=28, pady=2)
+            ctk.CTkLabel(frame, text=label, font=(FONT_FAMILY, 11, "bold"),
+                          text_color=COLORS["text_secondary"], width=70).pack(side="left")
             entry = ctk.CTkEntry(
-                frame, font=("Consolas", 11),
+                frame, font=("Consolas", 10),
                 fg_color=COLORS["bg_medium"], border_color=COLORS["border"],
-                text_color=COLORS["text_primary"],
+                text_color=COLORS["text_primary"], corner_radius=6,
             )
-            entry.pack(side="left", fill="x", expand=True, padx=(5, 0))
+            entry.pack(side="left", fill="x", expand=True, padx=(4, 0))
             entry.insert(0, value or "N/A")
             entry.configure(state="disabled")
 
         ctk.CTkButton(
-            self, text="Cerrar", font=("Segoe UI", 13),
-            fg_color=COLORS["bg_light"], hover_color=COLORS["border"],
-            height=36, corner_radius=8,
+            self, text="Cerrar", font=(FONT_FAMILY, 12),
+            fg_color=COLORS["bg_elevated"], hover_color=COLORS["bg_light"],
+            text_color=COLORS["text_secondary"],
+            height=34, corner_radius=10,
             command=self.destroy,
-        ).pack(pady=(15, 15))
+        ).pack(pady=(12, 14))
 
     def _center_window(self) -> None:
         self.update_idletasks()
-        x = self.master.winfo_x() + (self.master.winfo_width() - 520) // 2
-        y = self.master.winfo_y() + (self.master.winfo_height() - 280) // 2
+        x = self.master.winfo_x() + (self.master.winfo_width() - 500) // 2
+        y = self.master.winfo_y() + (self.master.winfo_height() - 260) // 2
         self.geometry(f"+{x}+{y}")
 
 
@@ -730,8 +767,8 @@ class SettingsDialog(ctk.CTkToplevel):
         self.app = app
         self.config = app.config_manager.config
 
-        self.title("Configuraci\u00f3n - KrosDownloadManager")
-        self.geometry("550x600")
+        self.title("Configuraci\u00f3n")
+        self.geometry("520x580")
         self.configure(fg_color=COLORS["bg_dark"])
         self.resizable(False, False)
         self.transient(master)
@@ -740,29 +777,29 @@ class SettingsDialog(ctk.CTkToplevel):
         self.after(100, self._center_window)
 
         header = ctk.CTkLabel(
-            self, text="\u2699 Configuraci\u00f3n",
-            font=("Segoe UI", 20, "bold"),
-            text_color=COLORS["accent"],
+            self, text="Configuraci\u00f3n",
+            font=(FONT_FAMILY, 18, "bold"),
+            text_color=COLORS["text_primary"],
         )
-        header.pack(pady=(20, 15))
+        header.pack(pady=(24, 16))
 
         scroll = ctk.CTkScrollableFrame(
             self, fg_color="transparent",
             scrollbar_button_color=COLORS["border"],
         )
-        scroll.pack(fill="both", expand=True, padx=20, pady=(0, 10))
+        scroll.pack(fill="both", expand=True, padx=24, pady=(0, 8))
 
         self._add_section(scroll, "Descargas")
 
         dir_frame = ctk.CTkFrame(scroll, fg_color="transparent")
         dir_frame.pack(fill="x", pady=5)
         ctk.CTkLabel(dir_frame, text="Carpeta por defecto:",
-                      font=("Segoe UI", 12), text_color=COLORS["text_primary"]).pack(anchor="w")
+                      font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"]).pack(anchor="w")
         dir_inner = ctk.CTkFrame(dir_frame, fg_color="transparent")
         dir_inner.pack(fill="x", pady=(3, 0))
         dir_inner.grid_columnconfigure(0, weight=1)
         self.dir_entry = ctk.CTkEntry(
-            dir_inner, height=35, font=("Segoe UI", 11),
+            dir_inner, height=35, font=(FONT_FAMILY, 11),
             fg_color=COLORS["bg_medium"], border_color=COLORS["border"],
             text_color=COLORS["text_primary"],
         )
@@ -770,14 +807,14 @@ class SettingsDialog(ctk.CTkToplevel):
         self.dir_entry.insert(0, self.config.download_dir)
         ctk.CTkButton(
             dir_inner, text="\U0001F4C1", width=35, height=35,
-            fg_color=COLORS["bg_light"], hover_color=COLORS["accent"],
-            command=self._browse_dir,
+            fg_color=COLORS["bg_elevated"], hover_color=COLORS["bg_light"],
+            command=self._browse_dir, corner_radius=8,
         ).grid(row=0, column=1)
 
         conn_frame = ctk.CTkFrame(scroll, fg_color="transparent")
         conn_frame.pack(fill="x", pady=5)
         ctk.CTkLabel(conn_frame, text="Conexiones por defecto:",
-                      font=("Segoe UI", 12), text_color=COLORS["text_primary"]).pack(anchor="w")
+                      font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"]).pack(anchor="w")
         conn_inner = ctk.CTkFrame(conn_frame, fg_color="transparent")
         conn_inner.pack(fill="x", pady=(3, 0))
         self.conn_slider = ctk.CTkSlider(
@@ -789,7 +826,7 @@ class SettingsDialog(ctk.CTkToplevel):
         self.conn_slider.pack(side="left")
         self.conn_label = ctk.CTkLabel(
             conn_inner, text=str(self.config.default_connections),
-            font=("Segoe UI", 12, "bold"), text_color=COLORS["accent"], width=30,
+            font=(FONT_FAMILY, 12, "bold"), text_color=COLORS["accent"], width=30,
         )
         self.conn_label.pack(side="left", padx=10)
         self.conn_slider.configure(command=lambda v: self.conn_label.configure(text=str(int(v))))
@@ -797,7 +834,7 @@ class SettingsDialog(ctk.CTkToplevel):
         concurrent_frame = ctk.CTkFrame(scroll, fg_color="transparent")
         concurrent_frame.pack(fill="x", pady=5)
         ctk.CTkLabel(concurrent_frame, text="Descargas simult\u00e1neas:",
-                      font=("Segoe UI", 12), text_color=COLORS["text_primary"]).pack(anchor="w")
+                      font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"]).pack(anchor="w")
         concurrent_inner = ctk.CTkFrame(concurrent_frame, fg_color="transparent")
         concurrent_inner.pack(fill="x", pady=(3, 0))
         self.concurrent_slider = ctk.CTkSlider(
@@ -809,7 +846,7 @@ class SettingsDialog(ctk.CTkToplevel):
         self.concurrent_slider.pack(side="left")
         self.concurrent_label = ctk.CTkLabel(
             concurrent_inner, text=str(self.config.max_concurrent_downloads),
-            font=("Segoe UI", 12, "bold"), text_color=COLORS["accent"], width=30,
+            font=(FONT_FAMILY, 12, "bold"), text_color=COLORS["accent"], width=30,
         )
         self.concurrent_label.pack(side="left", padx=10)
         self.concurrent_slider.configure(
@@ -820,9 +857,9 @@ class SettingsDialog(ctk.CTkToplevel):
         speed_frame = ctk.CTkFrame(scroll, fg_color="transparent")
         speed_frame.pack(fill="x", pady=5)
         ctk.CTkLabel(speed_frame, text="L\u00edmite (KB/s, 0 = sin l\u00edmite):",
-                      font=("Segoe UI", 12), text_color=COLORS["text_primary"]).pack(anchor="w")
+                      font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"]).pack(anchor="w")
         self.speed_entry = ctk.CTkEntry(
-            speed_frame, height=35, font=("Segoe UI", 11), width=120,
+            speed_frame, height=35, font=(FONT_FAMILY, 11), width=120,
             fg_color=COLORS["bg_medium"], border_color=COLORS["border"],
             text_color=COLORS["text_primary"],
         )
@@ -833,16 +870,16 @@ class SettingsDialog(ctk.CTkToplevel):
         self.proxy_var = ctk.BooleanVar(value=self.config.proxy_enabled)
         ctk.CTkCheckBox(
             scroll, text="Usar proxy", variable=self.proxy_var,
-            font=("Segoe UI", 12), text_color=COLORS["text_primary"],
+            font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"],
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
         ).pack(anchor="w", pady=5)
 
         proxy_frame = ctk.CTkFrame(scroll, fg_color="transparent")
         proxy_frame.pack(fill="x", pady=3)
         ctk.CTkLabel(proxy_frame, text="Proxy (ej: http://proxy:8080):",
-                      font=("Segoe UI", 12), text_color=COLORS["text_primary"]).pack(anchor="w")
+                      font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"]).pack(anchor="w")
         self.proxy_entry = ctk.CTkEntry(
-            proxy_frame, height=35, font=("Segoe UI", 11),
+            proxy_frame, height=35, font=(FONT_FAMILY, 11),
             fg_color=COLORS["bg_medium"], border_color=COLORS["border"],
             text_color=COLORS["text_primary"],
             placeholder_text="http://proxy:8080",
@@ -855,30 +892,30 @@ class SettingsDialog(ctk.CTkToplevel):
         self.theme_var = ctk.StringVar(value=self.config.theme)
         theme_frame = ctk.CTkFrame(scroll, fg_color="transparent")
         theme_frame.pack(fill="x", pady=5)
-        ctk.CTkLabel(theme_frame, text="Tema:", font=("Segoe UI", 12),
+        ctk.CTkLabel(theme_frame, text="Tema:", font=(FONT_FAMILY, 12),
                       text_color=COLORS["text_primary"]).pack(side="left")
         ctk.CTkRadioButton(
             theme_frame, text="Oscuro", variable=self.theme_var, value="dark",
-            font=("Segoe UI", 11), text_color=COLORS["text_primary"],
+            font=(FONT_FAMILY, 11), text_color=COLORS["text_primary"],
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
         ).pack(side="left", padx=(15, 10))
         ctk.CTkRadioButton(
             theme_frame, text="Claro", variable=self.theme_var, value="light",
-            font=("Segoe UI", 11), text_color=COLORS["text_primary"],
+            font=(FONT_FAMILY, 11), text_color=COLORS["text_primary"],
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
         ).pack(side="left")
 
         self.clipboard_var = ctk.BooleanVar(value=self.config.clipboard_monitoring)
         ctk.CTkCheckBox(
             scroll, text="Monitorear portapapeles", variable=self.clipboard_var,
-            font=("Segoe UI", 12), text_color=COLORS["text_primary"],
+            font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"],
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
         ).pack(anchor="w", pady=5)
 
         self.tray_var = ctk.BooleanVar(value=self.config.minimize_to_tray)
         ctk.CTkCheckBox(
             scroll, text="Minimizar a bandeja del sistema", variable=self.tray_var,
-            font=("Segoe UI", 12), text_color=COLORS["text_primary"],
+            font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"],
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
         ).pack(anchor="w", pady=5)
 
@@ -886,33 +923,34 @@ class SettingsDialog(ctk.CTkToplevel):
         btn_frame.pack(fill="x", padx=20, pady=(5, 15))
 
         ctk.CTkButton(
-            btn_frame, text="Guardar", font=("Segoe UI", 14, "bold"),
+            btn_frame, text="Guardar", font=(FONT_FAMILY, 13, "bold"),
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
-            height=38, corner_radius=8,
+            height=38, corner_radius=10,
             command=self._save,
-        ).pack(side="right", padx=(10, 0))
+        ).pack(side="right", padx=(8, 0))
 
         ctk.CTkButton(
-            btn_frame, text="Cancelar", font=("Segoe UI", 14),
-            fg_color=COLORS["bg_light"], hover_color=COLORS["border"],
-            height=38, corner_radius=8,
+            btn_frame, text="Cancelar", font=(FONT_FAMILY, 13),
+            fg_color=COLORS["bg_elevated"], hover_color=COLORS["bg_light"],
+            text_color=COLORS["text_secondary"],
+            height=38, corner_radius=10,
             command=self.destroy,
         ).pack(side="right")
 
     def _add_section(self, parent, text: str) -> None:
         frame = ctk.CTkFrame(parent, fg_color="transparent")
-        frame.pack(fill="x", pady=(15, 5))
+        frame.pack(fill="x", pady=(14, 4))
         ctk.CTkLabel(
-            frame, text=text, font=("Segoe UI", 14, "bold"),
-            text_color=COLORS["accent"],
+            frame, text=text, font=(FONT_FAMILY, 12, "bold"),
+            text_color=COLORS["text_secondary"],
         ).pack(anchor="w")
         separator = ctk.CTkFrame(frame, fg_color=COLORS["border"], height=1)
-        separator.pack(fill="x", pady=(3, 0))
+        separator.pack(fill="x", pady=(4, 0))
 
     def _center_window(self) -> None:
         self.update_idletasks()
-        x = self.master.winfo_x() + (self.master.winfo_width() - 550) // 2
-        y = self.master.winfo_y() + (self.master.winfo_height() - 600) // 2
+        x = self.master.winfo_x() + (self.master.winfo_width() - 520) // 2
+        y = self.master.winfo_y() + (self.master.winfo_height() - 580) // 2
         self.geometry(f"+{x}+{y}")
 
     def _browse_dir(self) -> None:
@@ -953,8 +991,8 @@ class AboutDialog(ctk.CTkToplevel):
 
     def __init__(self, master):
         super().__init__(master)
-        self.title("Acerca de KrosDownloadManager")
-        self.geometry("420x380")
+        self.title("Acerca de")
+        self.geometry("400x360")
         self.configure(fg_color=COLORS["bg_dark"])
         self.resizable(False, False)
         self.transient(master)
@@ -964,59 +1002,53 @@ class AboutDialog(ctk.CTkToplevel):
 
         ctk.CTkLabel(
             self, text="\u2B07",
-            font=("Segoe UI Emoji", 48),
+            font=("Segoe UI Emoji", 40),
             text_color=COLORS["accent"],
-        ).pack(pady=(25, 5))
+        ).pack(pady=(24, 4))
 
         ctk.CTkLabel(
             self, text="KrosDownloadManager",
-            font=("Segoe UI", 22, "bold"),
+            font=(FONT_FAMILY, 20, "bold"),
             text_color=COLORS["text_primary"],
         ).pack()
 
         ctk.CTkLabel(
             self, text=f"Versi\u00f3n {__version__}",
-            font=("Segoe UI", 14),
+            font=(FONT_FAMILY, 12),
             text_color=COLORS["text_secondary"],
-        ).pack(pady=(2, 15))
+        ).pack(pady=(2, 12))
 
         info_text = (
-            "Gestor de descargas portable para Windows\n"
-            "similar a Internet Download Manager.\n\n"
-            "Caracter\u00edsticas:\n"
-            "\u2022 Descargas multi-hilo (hasta 32 conexiones)\n"
-            "\u2022 Pausar / Reanudar descargas\n"
-            "\u2022 Cola de descargas autom\u00e1tica\n"
-            "\u2022 Programaci\u00f3n de descargas\n"
-            "\u2022 Soporte de proxy\n"
-            "\u2022 Verificaci\u00f3n de integridad (MD5/SHA-256)\n"
-            "\u2022 Descarga por lotes\n"
-            "\u2022 Monitoreo del portapapeles"
+            "Gestor de descargas portable para Windows\n\n"
+            "Multi-hilo \u00b7 Pausar/Reanudar \u00b7 Programar\n"
+            "Proxy \u00b7 Checksums \u00b7 Lotes \u00b7 Portapapeles\n"
+            "MediaFire \u00b7 Google Drive \u00b7 Dropbox"
         )
         ctk.CTkLabel(
             self, text=info_text,
-            font=("Segoe UI", 11),
-            text_color=COLORS["text_secondary"],
-            justify="left",
-        ).pack(padx=30)
+            font=(FONT_FAMILY, 11),
+            text_color=COLORS["text_tertiary"],
+            justify="center",
+        ).pack(padx=28)
 
         ctk.CTkLabel(
             self, text="Hecho por iSekro",
-            font=("Segoe UI", 12, "bold"),
+            font=(FONT_FAMILY, 11, "bold"),
             text_color=COLORS["accent"],
-        ).pack(pady=(15, 5))
+        ).pack(pady=(12, 4))
 
         ctk.CTkButton(
-            self, text="Cerrar", font=("Segoe UI", 13),
-            fg_color=COLORS["bg_light"], hover_color=COLORS["border"],
-            height=34, corner_radius=8,
+            self, text="Cerrar", font=(FONT_FAMILY, 12),
+            fg_color=COLORS["bg_elevated"], hover_color=COLORS["bg_light"],
+            text_color=COLORS["text_secondary"],
+            height=32, corner_radius=10,
             command=self.destroy,
-        ).pack(pady=(5, 15))
+        ).pack(pady=(4, 14))
 
     def _center_window(self) -> None:
         self.update_idletasks()
-        x = self.master.winfo_x() + (self.master.winfo_width() - 420) // 2
-        y = self.master.winfo_y() + (self.master.winfo_height() - 380) // 2
+        x = self.master.winfo_x() + (self.master.winfo_width() - 400) // 2
+        y = self.master.winfo_y() + (self.master.winfo_height() - 360) // 2
         self.geometry(f"+{x}+{y}")
 
 
@@ -1171,53 +1203,67 @@ class MainWindow(ctk.CTk):
         self._build_statusbar()
 
     def _build_toolbar(self) -> None:
-        toolbar = ctk.CTkFrame(self, fg_color=COLORS["bg_medium"], height=52, corner_radius=0)
+        toolbar = ctk.CTkFrame(self, fg_color=COLORS["bg_dark"], height=48, corner_radius=0)
         toolbar.pack(fill="x", padx=0, pady=0)
         toolbar.pack_propagate(False)
 
+        sep = ctk.CTkFrame(self, fg_color=COLORS["border"], height=1, corner_radius=0)
+        sep.pack(fill="x")
+
         logo = ctk.CTkLabel(
-            toolbar, text="\u2B07 KrosDownloadManager",
-            font=("Segoe UI", 16, "bold"),
+            toolbar, text="\u2B07 Kros",
+            font=(FONT_FAMILY, 15, "bold"),
             text_color=COLORS["accent"],
         )
-        logo.pack(side="left", padx=15)
+        logo.pack(side="left", padx=(16, 12))
 
         btn_data = [
             ("\u2795 Nueva", self._add_download),
             ("\U0001F4E5 Lotes", self._batch_download),
             ("\u23F0 Programar", self._schedule_download),
-            ("\u25B6 Reanudar", self._resume_selected),
-            ("\u23F8 Pausar", self._pause_selected),
-            ("\u23F9 Cancelar", self._cancel_selected),
-            ("\U0001F5D1 Eliminar", self._delete_selected),
-            ("\u25B6\u25B6 Todo", self._resume_all),
-            ("\u23F8\u23F8 Pausar Todo", self._pause_all),
-            ("\u2699 Config", self._open_settings),
-            ("\u2139 Acerca de", self._show_about),
+            (None, None),
+            ("\u25B6", self._resume_selected),
+            ("\u23F8", self._pause_selected),
+            ("\u23F9", self._cancel_selected),
+            ("\U0001F5D1", self._delete_selected),
+            (None, None),
+            ("\u25B6\u25B6", self._resume_all),
+            ("\u23F8\u23F8", self._pause_all),
+            (None, None),
+            ("\u2699", self._open_settings),
+            ("\u2139", self._show_about),
         ]
 
         for text, cmd in btn_data:
+            if text is None:
+                div = ctk.CTkFrame(toolbar, fg_color=COLORS["border"], width=1, height=24)
+                div.pack(side="left", padx=4, pady=12)
+                continue
             btn = ctk.CTkButton(
-                toolbar, text=text, font=("Segoe UI", 12),
-                fg_color="transparent", hover_color=COLORS["bg_light"],
-                text_color=COLORS["text_primary"],
-                height=36, corner_radius=6,
+                toolbar, text=text, font=(FONT_FAMILY, 11),
+                fg_color="transparent", hover_color=COLORS["bg_medium"],
+                text_color=COLORS["text_secondary"],
+                height=32, corner_radius=8,
                 command=cmd,
+                width=0,
             )
-            btn.pack(side="left", padx=3, pady=8)
+            btn.pack(side="left", padx=2, pady=8)
 
     def _build_sidebar(self) -> None:
         self._main_container = ctk.CTkFrame(self, fg_color="transparent")
         self._main_container.pack(fill="both", expand=True)
 
-        sidebar = ctk.CTkFrame(self._main_container, fg_color=COLORS["bg_medium"], width=180, corner_radius=0)
+        sidebar = ctk.CTkFrame(
+            self._main_container, fg_color=COLORS["bg_sidebar"],
+            width=170, corner_radius=0,
+        )
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
 
         ctk.CTkLabel(
-            sidebar, text="Categor\u00edas", font=("Segoe UI", 14, "bold"),
-            text_color=COLORS["text_primary"],
-        ).pack(pady=(15, 10))
+            sidebar, text="Categor\u00edas", font=(FONT_FAMILY, 11, "bold"),
+            text_color=COLORS["text_tertiary"],
+        ).pack(pady=(14, 8), padx=12, anchor="w")
 
         categories = [
             ("Todas", "all", "\U0001F4E5"),
@@ -1236,41 +1282,41 @@ class MainWindow(ctk.CTk):
 
         self._category_buttons = {}
         for name, filter_key, icon in categories:
+            is_active = filter_key == "all"
             btn = ctk.CTkButton(
                 sidebar, text=f" {icon}  {name}",
-                font=("Segoe UI", 12), anchor="w",
-                fg_color="transparent" if filter_key != "all" else COLORS["bg_light"],
-                hover_color=COLORS["bg_light"],
-                text_color=COLORS["text_primary"],
-                height=34, corner_radius=4,
+                font=(FONT_FAMILY, 11), anchor="w",
+                fg_color=COLORS["bg_elevated"] if is_active else "transparent",
+                hover_color=COLORS["bg_elevated"],
+                text_color=COLORS["text_primary"] if is_active else COLORS["text_secondary"],
+                height=32, corner_radius=8,
                 command=lambda fk=filter_key: self._set_filter(fk),
             )
             btn.pack(fill="x", padx=8, pady=1)
             self._category_buttons[filter_key] = btn
 
-        # Shortcuts help at the bottom
         shortcut_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
-        shortcut_frame.pack(side="bottom", fill="x", padx=8, pady=10)
+        shortcut_frame.pack(side="bottom", fill="x", padx=12, pady=10)
         ctk.CTkLabel(
-            shortcut_frame, text="Atajos de teclado",
-            font=("Segoe UI", 10, "bold"),
-            text_color=COLORS["text_secondary"],
-        ).pack(anchor="w")
+            shortcut_frame, text="Atajos",
+            font=(FONT_FAMILY, 9, "bold"),
+            text_color=COLORS["text_tertiary"],
+        ).pack(anchor="w", pady=(0, 2))
         shortcuts = [
-            "Ctrl+N  Nueva descarga",
+            "Ctrl+N  Nueva",
             "Ctrl+B  Lotes",
             "Ctrl+T  Programar",
             "Ctrl+P  Pausar",
             "Ctrl+R  Reanudar",
             "Del     Eliminar",
             "Ctrl+Q  Salir",
-            "F1      Acerca de",
+            "F1      Info",
         ]
         for s in shortcuts:
             ctk.CTkLabel(
                 shortcut_frame, text=s,
-                font=("Consolas", 9),
-                text_color=COLORS["text_secondary"],
+                font=("Consolas", 8),
+                text_color=COLORS["text_tertiary"],
                 anchor="w",
             ).pack(anchor="w")
 
@@ -1278,66 +1324,71 @@ class MainWindow(ctk.CTk):
         main_frame = ctk.CTkFrame(self._main_container, fg_color=COLORS["bg_dark"], corner_radius=0)
         main_frame.pack(side="left", fill="both", expand=True)
 
-        header = ctk.CTkFrame(main_frame, fg_color=COLORS["bg_medium"], height=36, corner_radius=0)
-        header.pack(fill="x")
+        header = ctk.CTkFrame(main_frame, fg_color=COLORS["bg_dark"], height=32, corner_radius=0)
+        header.pack(fill="x", padx=8, pady=(6, 0))
         header.pack_propagate(False)
 
         cols = [
-            ("", 40), ("Nombre", 0), ("Tama\u00f1o", 100),
-            ("Progreso", 230), ("Estado", 90), ("Acciones", 80),
+            ("", 44), ("Nombre", 0), ("Tama\u00f1o", 90),
+            ("Progreso", 200), ("Estado", 80), ("", 76),
         ]
         for col_name, width in cols:
             lbl = ctk.CTkLabel(
-                header, text=col_name, font=("Segoe UI", 11, "bold"),
-                text_color=COLORS["text_secondary"],
+                header, text=col_name, font=(FONT_FAMILY, 10),
+                text_color=COLORS["text_tertiary"],
                 width=width if width > 0 else 0,
             )
             if width > 0:
-                lbl.pack(side="left", padx=5)
+                lbl.pack(side="left", padx=4)
             else:
-                lbl.pack(side="left", padx=5, expand=True, fill="x")
+                lbl.pack(side="left", padx=4, expand=True, fill="x")
+
+        sep = ctk.CTkFrame(main_frame, fg_color=COLORS["border"], height=1, corner_radius=0)
+        sep.pack(fill="x", padx=8)
 
         self.download_list = ctk.CTkScrollableFrame(
             main_frame, fg_color=COLORS["bg_dark"],
             scrollbar_button_color=COLORS["border"],
         )
-        self.download_list.pack(fill="both", expand=True, padx=2, pady=2)
+        self.download_list.pack(fill="both", expand=True, padx=6, pady=4)
 
         self._empty_label = ctk.CTkLabel(
             self.download_list,
-            text="\u2B07\n\nNo hay descargas\n\nHaz clic en '+ Nueva' o presiona Ctrl+N",
-            font=("Segoe UI", 16),
-            text_color=COLORS["text_secondary"],
+            text="\u2B07\n\nNo hay descargas\n\nCtrl+N para agregar",
+            font=(FONT_FAMILY, 14),
+            text_color=COLORS["text_tertiary"],
         )
 
     def _build_statusbar(self) -> None:
-        statusbar = ctk.CTkFrame(self, fg_color=COLORS["bg_medium"], height=28, corner_radius=0)
+        sep = ctk.CTkFrame(self, fg_color=COLORS["border"], height=1, corner_radius=0)
+        sep.pack(fill="x", side="bottom")
+        statusbar = ctk.CTkFrame(self, fg_color=COLORS["bg_dark"], height=26, corner_radius=0)
         statusbar.pack(fill="x", side="bottom")
         statusbar.pack_propagate(False)
 
         self.status_label = ctk.CTkLabel(
-            statusbar, text="Listo", font=("Segoe UI", 10),
-            text_color=COLORS["text_secondary"],
+            statusbar, text="Listo", font=(FONT_FAMILY, 9),
+            text_color=COLORS["text_tertiary"],
         )
-        self.status_label.pack(side="left", padx=10)
+        self.status_label.pack(side="left", padx=12)
 
         self.speed_status = ctk.CTkLabel(
-            statusbar, text="", font=("Segoe UI", 10),
-            text_color=COLORS["text_secondary"],
+            statusbar, text="", font=(FONT_FAMILY, 9),
+            text_color=COLORS["text_tertiary"],
         )
-        self.speed_status.pack(side="right", padx=10)
+        self.speed_status.pack(side="right", padx=12)
 
         self.count_label = ctk.CTkLabel(
-            statusbar, text="0 descargas", font=("Segoe UI", 10),
-            text_color=COLORS["text_secondary"],
+            statusbar, text="0 descargas", font=(FONT_FAMILY, 9),
+            text_color=COLORS["text_tertiary"],
         )
-        self.count_label.pack(side="right", padx=10)
+        self.count_label.pack(side="right", padx=12)
 
     def show_context_menu(self, event, item: DownloadItem) -> None:
         """Show right-click context menu for a download."""
-        menu = tk.Menu(self, tearoff=0, bg=COLORS["bg_medium"], fg=COLORS["text_primary"],
+        menu = tk.Menu(self, tearoff=0, bg=COLORS["bg_elevated"], fg=COLORS["text_primary"],
                        activebackground=COLORS["accent"], activeforeground=COLORS["text_primary"],
-                       font=("Segoe UI", 10))
+                       font=(FONT_FAMILY, 10), relief="flat", bd=1)
 
         if item.status == DownloadStatus.DOWNLOADING:
             menu.add_command(label="\u23F8 Pausar", command=lambda: self.engine.pause_download(item.id))
@@ -1568,7 +1619,11 @@ class MainWindow(ctk.CTk):
         self._filter = filter_key
 
         for key, btn in self._category_buttons.items():
-            btn.configure(fg_color=COLORS["bg_light"] if key == filter_key else "transparent")
+            is_active = key == filter_key
+            btn.configure(
+                fg_color=COLORS["bg_elevated"] if is_active else "transparent",
+                text_color=COLORS["text_primary"] if is_active else COLORS["text_secondary"],
+            )
 
         self._apply_filter()
 
