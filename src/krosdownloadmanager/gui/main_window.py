@@ -1290,7 +1290,7 @@ class MainWindow(ctk.CTk):
             lbl = ctk.CTkLabel(
                 header, text=col_name, font=("Segoe UI", 11, "bold"),
                 text_color=COLORS["text_secondary"],
-                width=width if width > 0 else None,
+                width=width if width > 0 else 0,
             )
             if width > 0:
                 lbl.pack(side="left", padx=5)
