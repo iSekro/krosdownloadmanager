@@ -1,6 +1,8 @@
 """Utility helper functions."""
 
+import os
 import re
+import sys
 from urllib.parse import urlparse
 
 
@@ -69,3 +71,35 @@ def sanitize_filename(filename: str) -> str:
     if not sanitized:
         sanitized = "download"
     return sanitized
+
+
+def get_asset_path(filename: str) -> str:
+    """Get the path to an asset file, works both in dev and PyInstaller bundle."""
+    if getattr(sys, "frozen", False):
+        base = os.path.join(sys._MEIPASS, "krosdownloadmanager", "assets")  # type: ignore[attr-defined]
+    else:
+        base = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets")
+    return os.path.join(base, filename)
+
+
+def format_eta(seconds: float) -> str:
+    """Format seconds into a human-readable ETA string."""
+    if seconds <= 0:
+        return "00:00"
+    if seconds > 86400:
+        days = int(seconds / 86400)
+        hours = int((seconds % 86400) / 3600)
+        return f"{days}d {hours}h"
+    if seconds > 3600:
+        hours = int(seconds / 3600)
+        minutes = int((seconds % 3600) / 60)
+        return f"{hours}h {minutes}m"
+    minutes = int(seconds / 60)
+    secs = int(seconds % 60)
+    return f"{minutes:02d}:{secs:02d}"
+
+
+def extract_urls_from_text(text: str) -> list[str]:
+    """Extract all URLs from a block of text."""
+    url_pattern = r'https?://[^\s<>"{}|\\^`\[\]]+'
+    return re.findall(url_pattern, text)

@@ -38,6 +38,7 @@ def build():
         "--hidden-import", "requests",
         "--hidden-import", "PIL",
         "--hidden-import", "pyperclip",
+        "--hidden-import", "pystray",
         "--collect-all", "customtkinter",
     ]
 

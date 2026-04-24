@@ -19,6 +19,8 @@ class AppConfig:
     clipboard_monitoring: bool = True
     theme: str = "dark"
     language: str = "es"
+    proxy: str = ""
+    proxy_enabled: bool = False
     file_categories: dict = field(default_factory=lambda: {
         "Compressed": [".zip", ".rar", ".7z", ".tar", ".gz", ".bz2", ".xz", ".tar.gz", ".tar.bz2"],
         "Documents": [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".rtf", ".odt"],
@@ -89,6 +91,8 @@ class ConfigManager:
             "language": self.config.language,
             "window_width": self.config.window_width,
             "window_height": self.config.window_height,
+            "proxy": self.config.proxy,
+            "proxy_enabled": self.config.proxy_enabled,
         }
         with open(self.config_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
