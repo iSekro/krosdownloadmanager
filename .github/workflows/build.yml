@@ -2,10 +2,11 @@ name: Build Portable EXE
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'devin/**']
     tags: ['v*']
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   build-windows:
