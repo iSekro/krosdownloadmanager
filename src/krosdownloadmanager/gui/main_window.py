@@ -19,28 +19,31 @@ from krosdownloadmanager.utils.helpers import (
 )
 
 COLORS = {
-    "bg_dark": "#1c1c1e",
-    "bg_medium": "#2c2c2e",
-    "bg_light": "#3a3a3c",
-    "bg_sidebar": "#252528",
-    "bg_elevated": "#323234",
-    "accent": "#0a84ff",
-    "accent_hover": "#409cff",
-    "accent_subtle": "#0a84ff20",
-    "text_primary": "#f5f5f7",
-    "text_secondary": "#86868b",
-    "text_tertiary": "#636366",
-    "success": "#30d158",
-    "warning": "#ff9f0a",
-    "error": "#ff453a",
-    "progress_bg": "#38383a",
-    "row_even": "#1c1c1e",
-    "row_odd": "#222224",
-    "row_hover": "#2c2c2e",
-    "border": "#38383a",
-    "border_light": "#48484a",
-    "separator": "#2c2c2e",
-    "glass": "#2c2c2e",
+    "bg_dark": "#121212",
+    "bg_medium": "#1a1a1a",
+    "bg_light": "#282828",
+    "bg_sidebar": "#000000",
+    "bg_elevated": "#1e1e1e",
+    "bg_titlebar": "#0a0a0a",
+    "accent": "#1db954",
+    "accent_hover": "#1ed760",
+    "accent_subtle": "#1db95420",
+    "text_primary": "#ffffff",
+    "text_secondary": "#b3b3b3",
+    "text_tertiary": "#727272",
+    "success": "#1db954",
+    "warning": "#f59b23",
+    "error": "#e22134",
+    "progress_bg": "#404040",
+    "row_even": "#121212",
+    "row_odd": "#181818",
+    "row_hover": "#1a1a1a",
+    "border": "#282828",
+    "border_light": "#333333",
+    "separator": "#282828",
+    "glass": "#181818",
+    "close_hover": "#e81123",
+    "btn_hover": "#333333",
 }
 
 FONT_FAMILY = "Segoe UI"
@@ -1061,12 +1064,17 @@ class MainWindow(ctk.CTk):
         self.config_manager = ConfigManager()
         config = self.config_manager.config
 
-        ctk.set_appearance_mode("dark" if config.theme == "dark" else "light")
+        ctk.set_appearance_mode("dark")
 
         self.title("KrosDownloadManager v1.0")
         self.geometry(f"{config.window_width}x{config.window_height}")
         self.minsize(900, 500)
         self.configure(fg_color=COLORS["bg_dark"])
+
+        self.overrideredirect(True)
+        self._maximized = False
+        self._drag_data = {"x": 0, "y": 0}
+        self._restore_geometry = self.geometry()
 
         self._set_icon()
 
@@ -1093,6 +1101,7 @@ class MainWindow(ctk.CTk):
 
         self._build_ui()
         self._bind_shortcuts()
+        self._setup_resize_grips()
         self._load_downloads()
 
         if config.clipboard_monitoring:
@@ -1197,13 +1206,149 @@ class MainWindow(ctk.CTk):
 
     def _build_ui(self) -> None:
         """Build the main user interface."""
+        self._build_titlebar()
         self._build_toolbar()
         self._build_sidebar()
         self._build_main_area()
         self._build_statusbar()
 
+    def _build_titlebar(self) -> None:
+        """Custom titlebar with drag and window controls."""
+        self._titlebar = ctk.CTkFrame(
+            self, fg_color=COLORS["bg_titlebar"], height=32, corner_radius=0,
+        )
+        self._titlebar.pack(fill="x")
+        self._titlebar.pack_propagate(False)
+
+        title_label = ctk.CTkLabel(
+            self._titlebar, text="  \u2B07  KrosDownloadManager",
+            font=(FONT_FAMILY, 11), text_color=COLORS["text_tertiary"],
+        )
+        title_label.pack(side="left", padx=8)
+
+        close_btn = ctk.CTkButton(
+            self._titlebar, text="\u2715", width=46, height=32,
+            font=(FONT_FAMILY, 12), fg_color="transparent",
+            hover_color=COLORS["close_hover"],
+            text_color=COLORS["text_secondary"], corner_radius=0,
+            command=self._on_close,
+        )
+        close_btn.pack(side="right")
+
+        max_btn = ctk.CTkButton(
+            self._titlebar, text="\u25A1", width=46, height=32,
+            font=(FONT_FAMILY, 11), fg_color="transparent",
+            hover_color=COLORS["btn_hover"],
+            text_color=COLORS["text_secondary"], corner_radius=0,
+            command=self._toggle_maximize,
+        )
+        max_btn.pack(side="right")
+
+        min_btn = ctk.CTkButton(
+            self._titlebar, text="\u2500", width=46, height=32,
+            font=(FONT_FAMILY, 10), fg_color="transparent",
+            hover_color=COLORS["btn_hover"],
+            text_color=COLORS["text_secondary"], corner_radius=0,
+            command=self._minimize_window,
+        )
+        min_btn.pack(side="right")
+
+        for w in [self._titlebar, title_label]:
+            w.bind("<Button-1>", self._on_titlebar_press)
+            w.bind("<B1-Motion>", self._on_titlebar_drag)
+            w.bind("<Double-Button-1>", lambda e: self._toggle_maximize())
+
+    def _on_titlebar_press(self, event) -> None:
+        self._drag_data["x"] = event.x_root - self.winfo_x()
+        self._drag_data["y"] = event.y_root - self.winfo_y()
+
+    def _on_titlebar_drag(self, event) -> None:
+        if self._maximized:
+            self._maximized = False
+            self.geometry(self._restore_geometry)
+            self.update_idletasks()
+            w = self.winfo_width()
+            self._drag_data["x"] = w // 2
+            self._drag_data["y"] = 16
+        x = event.x_root - self._drag_data["x"]
+        y = event.y_root - self._drag_data["y"]
+        self.geometry(f"+{x}+{y}")
+
+    def _toggle_maximize(self) -> None:
+        if self._maximized:
+            self._maximized = False
+            self.geometry(self._restore_geometry)
+        else:
+            self._restore_geometry = self.geometry()
+            self._maximized = True
+            self.geometry(f"{self.winfo_screenwidth()}x{self.winfo_screenheight()}+0+0")
+
+    def _minimize_window(self) -> None:
+        self.overrideredirect(False)
+        self.iconify()
+        self.after(100, self._restore_override)
+
+    def _restore_override(self) -> None:
+        if self.state() == "iconic":
+            self.after(100, self._restore_override)
+            return
+        self.overrideredirect(True)
+
+    def _setup_resize_grips(self) -> None:
+        """Add invisible resize grips on window edges."""
+        grip_size = 6
+        for side in ["right", "bottom", "left"]:
+            grip = tk.Frame(self, cursor=f"{side}_side" if side != "bottom" else "bottom_side",
+                            bg=COLORS["bg_dark"], width=grip_size if side != "bottom" else 0,
+                            height=grip_size if side == "bottom" else 0)
+            if side == "right":
+                grip.place(relx=1.0, rely=0, relheight=1.0, width=grip_size, anchor="ne")
+            elif side == "left":
+                grip.place(relx=0, rely=0, relheight=1.0, width=grip_size, anchor="nw")
+            else:
+                grip.place(relx=0, rely=1.0, relwidth=1.0, height=grip_size, anchor="sw")
+            grip.bind("<Button-1>", lambda e, s=side: self._resize_start(e, s))
+            grip.bind("<B1-Motion>", lambda e, s=side: self._resize_drag(e, s))
+
+        corner = tk.Frame(self, cursor="bottom_right_corner",
+                          bg=COLORS["bg_dark"], width=grip_size, height=grip_size)
+        corner.place(relx=1.0, rely=1.0, anchor="se")
+        corner.bind("<Button-1>", lambda e: self._resize_start(e, "corner"))
+        corner.bind("<B1-Motion>", lambda e: self._resize_drag(e, "corner"))
+
+    def _resize_start(self, event, side: str) -> None:
+        self._resize_data = {
+            "x": event.x_root, "y": event.y_root,
+            "w": self.winfo_width(), "h": self.winfo_height(),
+            "wx": self.winfo_x(), "wy": self.winfo_y(),
+        }
+
+    def _resize_drag(self, event, side: str) -> None:
+        data = self._resize_data
+        dx = event.x_root - data["x"]
+        dy = event.y_root - data["y"]
+        min_w, min_h = 900, 500
+
+        if side in ("right", "corner"):
+            new_w = max(min_w, data["w"] + dx)
+        elif side == "left":
+            new_w = max(min_w, data["w"] - dx)
+        else:
+            new_w = data["w"]
+
+        if side in ("bottom", "corner"):
+            new_h = max(min_h, data["h"] + dy)
+        else:
+            new_h = data["h"]
+
+        if side == "left":
+            new_x = data["wx"] + (data["w"] - new_w)
+            self.geometry(f"{new_w}x{new_h}+{new_x}+{data['wy']}")
+        else:
+            self.geometry(f"{new_w}x{new_h}+{data['wx']}+{data['wy']}")
+
     def _build_toolbar(self) -> None:
-        toolbar = ctk.CTkFrame(self, fg_color=COLORS["bg_dark"], height=48, corner_radius=0)
+        toolbar = ctk.CTkFrame(self, fg_color=COLORS["bg_dark"], height=44, corner_radius=0)
         toolbar.pack(fill="x", padx=0, pady=0)
         toolbar.pack_propagate(False)
 
@@ -1212,10 +1357,10 @@ class MainWindow(ctk.CTk):
 
         logo = ctk.CTkLabel(
             toolbar, text="\u2B07 Kros",
-            font=(FONT_FAMILY, 15, "bold"),
+            font=(FONT_FAMILY, 14, "bold"),
             text_color=COLORS["accent"],
         )
-        logo.pack(side="left", padx=(16, 12))
+        logo.pack(side="left", padx=(14, 10))
 
         btn_data = [
             ("\u2795 Nueva", self._add_download),
@@ -1236,18 +1381,18 @@ class MainWindow(ctk.CTk):
 
         for text, cmd in btn_data:
             if text is None:
-                div = ctk.CTkFrame(toolbar, fg_color=COLORS["border"], width=1, height=24)
+                div = ctk.CTkFrame(toolbar, fg_color=COLORS["border"], width=1, height=20)
                 div.pack(side="left", padx=4, pady=12)
                 continue
             btn = ctk.CTkButton(
                 toolbar, text=text, font=(FONT_FAMILY, 11),
-                fg_color="transparent", hover_color=COLORS["bg_medium"],
+                fg_color="transparent", hover_color=COLORS["btn_hover"],
                 text_color=COLORS["text_secondary"],
-                height=32, corner_radius=8,
+                height=30, corner_radius=6,
                 command=cmd,
                 width=0,
             )
-            btn.pack(side="left", padx=2, pady=8)
+            btn.pack(side="left", padx=2, pady=7)
 
     def _build_sidebar(self) -> None:
         self._main_container = ctk.CTkFrame(self, fg_color="transparent")
@@ -1261,9 +1406,9 @@ class MainWindow(ctk.CTk):
         sidebar.pack_propagate(False)
 
         ctk.CTkLabel(
-            sidebar, text="Categor\u00edas", font=(FONT_FAMILY, 11, "bold"),
+            sidebar, text="Categor\u00edas", font=(FONT_FAMILY, 10, "bold"),
             text_color=COLORS["text_tertiary"],
-        ).pack(pady=(14, 8), padx=12, anchor="w")
+        ).pack(pady=(12, 6), padx=14, anchor="w")
 
         categories = [
             ("Todas", "all", "\U0001F4E5"),
@@ -1286,17 +1431,17 @@ class MainWindow(ctk.CTk):
             btn = ctk.CTkButton(
                 sidebar, text=f" {icon}  {name}",
                 font=(FONT_FAMILY, 11), anchor="w",
-                fg_color=COLORS["bg_elevated"] if is_active else "transparent",
-                hover_color=COLORS["bg_elevated"],
+                fg_color=COLORS["bg_light"] if is_active else "transparent",
+                hover_color=COLORS["bg_light"],
                 text_color=COLORS["text_primary"] if is_active else COLORS["text_secondary"],
-                height=32, corner_radius=8,
+                height=30, corner_radius=4,
                 command=lambda fk=filter_key: self._set_filter(fk),
             )
             btn.pack(fill="x", padx=8, pady=1)
             self._category_buttons[filter_key] = btn
 
         shortcut_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
-        shortcut_frame.pack(side="bottom", fill="x", padx=12, pady=10)
+        shortcut_frame.pack(side="bottom", fill="x", padx=14, pady=8)
         ctk.CTkLabel(
             shortcut_frame, text="Atajos",
             font=(FONT_FAMILY, 9, "bold"),
@@ -1621,7 +1766,7 @@ class MainWindow(ctk.CTk):
         for key, btn in self._category_buttons.items():
             is_active = key == filter_key
             btn.configure(
-                fg_color=COLORS["bg_elevated"] if is_active else "transparent",
+                fg_color=COLORS["bg_light"] if is_active else "transparent",
                 text_color=COLORS["text_primary"] if is_active else COLORS["text_secondary"],
             )
 
