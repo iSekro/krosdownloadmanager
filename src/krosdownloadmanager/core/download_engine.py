@@ -18,6 +18,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from krosdownloadmanager.utils.url_resolver import needs_resolution, resolve_url
+
 logger = logging.getLogger(__name__)
 
 
@@ -179,6 +181,7 @@ class DownloadEngine:
         session.mount("http://", adapter)
         session.mount("https://", adapter)
         session.headers["User-Agent"] = self.USER_AGENT
+        session.headers["Accept-Encoding"] = "identity"
         if self.proxy:
             session.proxies = {"http": self.proxy, "https": self.proxy}
         return session
@@ -245,10 +248,21 @@ class DownloadEngine:
         speed_limit: int = 0,
     ) -> DownloadItem:
         """Add a new download to the queue."""
+        resolved_filename = ""
+        if needs_resolution(url):
+            logger.info("Resolving indirect URL: %s", url)
+            result = resolve_url(url, proxy=self.proxy)
+            if result.get("resolved"):
+                url = result["url"]
+                resolved_filename = result.get("filename", "")
+                logger.info("Resolved to direct URL: %s", url)
+            elif result.get("error"):
+                logger.warning("URL resolution failed: %s", result["error"])
+
         info = self.get_file_info(url)
 
         if not filename:
-            filename = info["filename"]
+            filename = resolved_filename or info["filename"]
 
         actual_url = info.get("url", url)
 
@@ -492,6 +506,7 @@ class DownloadEngine:
 
             headers = {
                 "Range": f"bytes={seg.start}-{seg.end}",
+                "Accept-Encoding": "identity",
             }
 
             retries = 0

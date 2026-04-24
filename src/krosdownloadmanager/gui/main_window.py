@@ -1481,7 +1481,11 @@ class MainWindow(ctk.CTk):
             ))
 
     def _add_download_thread(self, url: str, save_path: str, filename: str, connections: int) -> None:
-        self.after(0, lambda: self.status_label.configure(text=f"Obteniendo info de {url[:50]}..."))
+        from krosdownloadmanager.utils.url_resolver import needs_resolution
+        if needs_resolution(url):
+            self.after(0, lambda: self.status_label.configure(text="Resolviendo enlace de descarga..."))
+        else:
+            self.after(0, lambda: self.status_label.configure(text=f"Obteniendo info de {url[:50]}..."))
 
         try:
             item = self.engine.add_download(
