@@ -8,6 +8,7 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 
 from krosdownloadmanager import __version__
+from krosdownloadmanager.core.api_server import ExtensionAPIServer
 from krosdownloadmanager.core.config import ConfigManager
 from krosdownloadmanager.core.download_engine import DownloadEngine, DownloadItem, DownloadStatus
 from krosdownloadmanager.utils.helpers import (
@@ -1112,7 +1113,21 @@ class MainWindow(ctk.CTk):
         if config.minimize_to_tray:
             self._setup_tray()
 
+        self._api_server = ExtensionAPIServer(self)
+        self._api_server.start()
+
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def add_download_from_extension(self, url: str) -> None:
+        """Called by the extension API server to add a download."""
+        if not is_valid_url(url):
+            return
+        config = self.config_manager.config
+        download_dir = config.download_dir
+        connections = config.default_connections
+        self.engine.add_download(url, download_dir, connections)
+        self._refresh_list()
+        self.status_label.configure(text=f"Descarga desde extensión: {url[:60]}")
 
     def _set_icon(self) -> None:
         """Set the window icon."""
@@ -1179,6 +1194,7 @@ class MainWindow(ctk.CTk):
         self.config_manager.config.window_width = self.winfo_width()
         self.config_manager.config.window_height = self.winfo_height()
         self.config_manager.save_config()
+        self._api_server.stop()
         self.engine.shutdown()
         if self._tray_icon:
             self._tray_icon.stop()
