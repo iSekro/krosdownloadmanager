@@ -11,6 +11,7 @@ from krosdownloadmanager import __version__
 from krosdownloadmanager.core.api_server import ExtensionAPIServer
 from krosdownloadmanager.core.config import ConfigManager
 from krosdownloadmanager.core.download_engine import DownloadEngine, DownloadItem, DownloadStatus
+from krosdownloadmanager.i18n import AVAILABLE_LANGUAGES, set_language, t
 from krosdownloadmanager.utils.helpers import (
     extract_urls_from_text,
     format_size,
@@ -88,7 +89,7 @@ class DownloadRow(ctk.CTkFrame):
         info_frame = ctk.CTkFrame(self, fg_color="transparent")
         info_frame.grid(row=1, column=1, padx=4, pady=(0, 10), sticky="w")
 
-        size_text = format_size(item.file_size) if item.file_size > 0 else "Desconocido"
+        size_text = format_size(item.file_size) if item.file_size > 0 else t("unknown")
         self.size_label = ctk.CTkLabel(
             info_frame, text=size_text, font=(FONT_FAMILY, 10),
             text_color=COLORS["text_secondary"],
@@ -186,15 +187,15 @@ class DownloadRow(ctk.CTkFrame):
 
     def _status_text(self) -> str:
         status_map = {
-            DownloadStatus.QUEUED: "En cola",
-            DownloadStatus.DOWNLOADING: "Descargando",
-            DownloadStatus.PAUSED: "Pausado",
-            DownloadStatus.COMPLETED: "Completado",
-            DownloadStatus.ERROR: "Error",
-            DownloadStatus.MERGING: "Uniendo...",
-            DownloadStatus.CANCELLED: "Cancelado",
+            DownloadStatus.QUEUED: t("status_queued"),
+            DownloadStatus.DOWNLOADING: t("status_downloading"),
+            DownloadStatus.PAUSED: t("status_paused"),
+            DownloadStatus.COMPLETED: t("status_completed"),
+            DownloadStatus.ERROR: t("status_error"),
+            DownloadStatus.MERGING: t("status_merging"),
+            DownloadStatus.CANCELLED: t("status_cancelled"),
         }
-        return status_map.get(self.item.status, "Desconocido")
+        return status_map.get(self.item.status, t("unknown"))
 
     def _status_color(self) -> str:
         color_map = {
@@ -270,7 +271,7 @@ class AddDownloadDialog(ctk.CTkToplevel):
         self.app = app
         self.result = None
 
-        self.title("Nueva Descarga")
+        self.title(t("new_download"))
         self.geometry("560x400")
         self.configure(fg_color=COLORS["bg_dark"])
         self.resizable(False, False)
@@ -280,7 +281,7 @@ class AddDownloadDialog(ctk.CTkToplevel):
         self.after(100, self._center_window)
 
         header = ctk.CTkLabel(
-            self, text="Nueva Descarga",
+            self, text=t("new_download"),
             font=(FONT_FAMILY, 18, "bold"),
             text_color=COLORS["text_primary"],
         )
@@ -288,13 +289,13 @@ class AddDownloadDialog(ctk.CTkToplevel):
 
         url_frame = ctk.CTkFrame(self, fg_color="transparent")
         url_frame.pack(fill="x", padx=28, pady=4)
-        ctk.CTkLabel(url_frame, text="URL", font=(FONT_FAMILY, 11),
+        ctk.CTkLabel(url_frame, text=t("url_label"), font=(FONT_FAMILY, 11),
                       text_color=COLORS["text_secondary"]).pack(anchor="w")
         self.url_entry = ctk.CTkEntry(
             url_frame, height=36, font=(FONT_FAMILY, 12),
             fg_color=COLORS["bg_medium"], border_color=COLORS["border"],
             text_color=COLORS["text_primary"], corner_radius=8,
-            placeholder_text="https://ejemplo.com/archivo.zip",
+            placeholder_text=t("url_placeholder"),
         )
         self.url_entry.pack(fill="x", pady=(4, 0))
 
@@ -308,19 +309,19 @@ class AddDownloadDialog(ctk.CTkToplevel):
 
         name_frame = ctk.CTkFrame(self, fg_color="transparent")
         name_frame.pack(fill="x", padx=28, pady=4)
-        ctk.CTkLabel(name_frame, text="Nombre del archivo (opcional)", font=(FONT_FAMILY, 11),
+        ctk.CTkLabel(name_frame, text=t("filename_optional"), font=(FONT_FAMILY, 11),
                       text_color=COLORS["text_secondary"]).pack(anchor="w")
         self.name_entry = ctk.CTkEntry(
             name_frame, height=36, font=(FONT_FAMILY, 12),
             fg_color=COLORS["bg_medium"], border_color=COLORS["border"],
             text_color=COLORS["text_primary"], corner_radius=8,
-            placeholder_text="Se detecta autom\u00e1ticamente",
+            placeholder_text=t("auto_detected"),
         )
         self.name_entry.pack(fill="x", pady=(4, 0))
 
         dir_frame = ctk.CTkFrame(self, fg_color="transparent")
         dir_frame.pack(fill="x", padx=28, pady=4)
-        ctk.CTkLabel(dir_frame, text="Guardar en", font=(FONT_FAMILY, 11),
+        ctk.CTkLabel(dir_frame, text=t("save_to"), font=(FONT_FAMILY, 11),
                       text_color=COLORS["text_secondary"]).pack(anchor="w")
 
         dir_inner = ctk.CTkFrame(dir_frame, fg_color="transparent")
@@ -345,7 +346,7 @@ class AddDownloadDialog(ctk.CTkToplevel):
 
         conn_frame = ctk.CTkFrame(self, fg_color="transparent")
         conn_frame.pack(fill="x", padx=28, pady=4)
-        ctk.CTkLabel(conn_frame, text="Conexiones", font=(FONT_FAMILY, 11),
+        ctk.CTkLabel(conn_frame, text=t("connections"), font=(FONT_FAMILY, 11),
                       text_color=COLORS["text_secondary"]).pack(side="left")
         self.conn_slider = ctk.CTkSlider(
             conn_frame, from_=1, to=16, number_of_steps=15,
@@ -368,14 +369,14 @@ class AddDownloadDialog(ctk.CTkToplevel):
         btn_frame.pack(fill="x", padx=28, pady=(18, 16))
 
         ctk.CTkButton(
-            btn_frame, text="Descargar", font=(FONT_FAMILY, 13, "bold"),
+            btn_frame, text=t("download_btn"), font=(FONT_FAMILY, 13, "bold"),
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
             height=38, corner_radius=10,
             command=self._on_download,
         ).pack(side="right", padx=(8, 0))
 
         ctk.CTkButton(
-            btn_frame, text="Cancelar", font=(FONT_FAMILY, 13),
+            btn_frame, text=t("cancel"), font=(FONT_FAMILY, 13),
             fg_color=COLORS["bg_elevated"], hover_color=COLORS["bg_light"],
             text_color=COLORS["text_secondary"],
             height=38, corner_radius=10,
@@ -391,7 +392,7 @@ class AddDownloadDialog(ctk.CTkToplevel):
     def _browse_dir(self) -> None:
         directory = filedialog.askdirectory(
             initialdir=self.dir_entry.get(),
-            title="Seleccionar carpeta de descarga",
+            title=t("select_download_folder"),
         )
         if directory:
             self.dir_entry.delete(0, tk.END)
@@ -403,16 +404,16 @@ class AddDownloadDialog(ctk.CTkToplevel):
     def _on_download(self) -> None:
         url = self.url_entry.get().strip()
         if not url:
-            messagebox.showwarning("URL vac\u00eda", "Por favor, ingresa una URL.", parent=self)
+            messagebox.showwarning(t("url_empty_title"), t("url_empty_msg"), parent=self)
             return
 
         if not is_valid_url(url):
-            messagebox.showwarning("URL inv\u00e1lida", "La URL proporcionada no es v\u00e1lida.", parent=self)
+            messagebox.showwarning(t("url_invalid_title"), t("url_invalid_msg"), parent=self)
             return
 
         save_path = self.dir_entry.get().strip()
         if not save_path:
-            messagebox.showwarning("Carpeta vac\u00eda", "Selecciona una carpeta de destino.", parent=self)
+            messagebox.showwarning(t("folder_empty_title"), t("folder_empty_msg"), parent=self)
             return
 
         self.result = {
@@ -432,7 +433,7 @@ class BatchDownloadDialog(ctk.CTkToplevel):
         self.app = app
         self.result: list[dict] | None = None
 
-        self.title("Descarga por Lotes")
+        self.title(t("batch_download"))
         self.geometry("600x500")
         self.configure(fg_color=COLORS["bg_dark"])
         self.resizable(False, False)
@@ -442,14 +443,14 @@ class BatchDownloadDialog(ctk.CTkToplevel):
         self.after(100, self._center_window)
 
         header = ctk.CTkLabel(
-            self, text="Descarga por Lotes",
+            self, text=t("batch_download"),
             font=(FONT_FAMILY, 18, "bold"),
             text_color=COLORS["text_primary"],
         )
         header.pack(pady=(24, 12))
 
         ctk.CTkLabel(
-            self, text="Ingresa una URL por l\u00ednea",
+            self, text=t("one_url_per_line"),
             font=(FONT_FAMILY, 11),
             text_color=COLORS["text_secondary"],
         ).pack(anchor="w", padx=28)
@@ -464,7 +465,7 @@ class BatchDownloadDialog(ctk.CTkToplevel):
 
         dir_frame = ctk.CTkFrame(self, fg_color="transparent")
         dir_frame.pack(fill="x", padx=28, pady=4)
-        ctk.CTkLabel(dir_frame, text="Guardar en", font=(FONT_FAMILY, 11),
+        ctk.CTkLabel(dir_frame, text=t("save_to"), font=(FONT_FAMILY, 11),
                       text_color=COLORS["text_secondary"]).pack(anchor="w")
 
         dir_inner = ctk.CTkFrame(dir_frame, fg_color="transparent")
@@ -487,7 +488,7 @@ class BatchDownloadDialog(ctk.CTkToplevel):
 
         conn_frame = ctk.CTkFrame(self, fg_color="transparent")
         conn_frame.pack(fill="x", padx=28, pady=4)
-        ctk.CTkLabel(conn_frame, text="Conexiones", font=(FONT_FAMILY, 11),
+        ctk.CTkLabel(conn_frame, text=t("connections"), font=(FONT_FAMILY, 11),
                       text_color=COLORS["text_secondary"]).pack(side="left")
         self.conn_slider = ctk.CTkSlider(
             conn_frame, from_=1, to=16, number_of_steps=15,
@@ -508,14 +509,14 @@ class BatchDownloadDialog(ctk.CTkToplevel):
         btn_frame.pack(fill="x", padx=28, pady=(14, 16))
 
         ctk.CTkButton(
-            btn_frame, text="Descargar Todo", font=(FONT_FAMILY, 13, "bold"),
+            btn_frame, text=t("download_btn"), font=(FONT_FAMILY, 13, "bold"),
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
             height=38, corner_radius=10,
             command=self._on_download,
         ).pack(side="right", padx=(8, 0))
 
         ctk.CTkButton(
-            btn_frame, text="Cancelar", font=(FONT_FAMILY, 13),
+            btn_frame, text=t("cancel"), font=(FONT_FAMILY, 13),
             fg_color=COLORS["bg_elevated"], hover_color=COLORS["bg_light"],
             text_color=COLORS["text_secondary"],
             height=38, corner_radius=10,
@@ -531,7 +532,7 @@ class BatchDownloadDialog(ctk.CTkToplevel):
     def _browse_dir(self) -> None:
         directory = filedialog.askdirectory(
             initialdir=self.dir_entry.get(),
-            title="Seleccionar carpeta de descarga",
+            title=t("select_download_folder"),
         )
         if directory:
             self.dir_entry.delete(0, tk.END)
@@ -542,12 +543,12 @@ class BatchDownloadDialog(ctk.CTkToplevel):
         urls = extract_urls_from_text(text)
 
         if not urls:
-            messagebox.showwarning("Sin URLs", "No se encontraron URLs v\u00e1lidas.", parent=self)
+            messagebox.showwarning(t("url_empty_title"), t("url_empty_msg"), parent=self)
             return
 
         save_path = self.dir_entry.get().strip()
         if not save_path:
-            messagebox.showwarning("Carpeta vac\u00eda", "Selecciona una carpeta de destino.", parent=self)
+            messagebox.showwarning(t("folder_empty_title"), t("folder_empty_msg"), parent=self)
             return
 
         self.result = [
@@ -570,7 +571,7 @@ class ScheduleDialog(ctk.CTkToplevel):
         self.app = app
         self.result = None
 
-        self.title("Programar Descarga")
+        self.title(t("schedule_download"))
         self.geometry("560x460")
         self.configure(fg_color=COLORS["bg_dark"])
         self.resizable(False, False)
@@ -580,7 +581,7 @@ class ScheduleDialog(ctk.CTkToplevel):
         self.after(100, self._center_window)
 
         header = ctk.CTkLabel(
-            self, text="Programar Descarga",
+            self, text=t("schedule_download"),
             font=(FONT_FAMILY, 18, "bold"),
             text_color=COLORS["text_primary"],
         )
@@ -588,19 +589,19 @@ class ScheduleDialog(ctk.CTkToplevel):
 
         url_frame = ctk.CTkFrame(self, fg_color="transparent")
         url_frame.pack(fill="x", padx=28, pady=4)
-        ctk.CTkLabel(url_frame, text="URL", font=(FONT_FAMILY, 11),
+        ctk.CTkLabel(url_frame, text=t("url_label"), font=(FONT_FAMILY, 11),
                       text_color=COLORS["text_secondary"]).pack(anchor="w")
         self.url_entry = ctk.CTkEntry(
             url_frame, height=36, font=(FONT_FAMILY, 12),
             fg_color=COLORS["bg_medium"], border_color=COLORS["border"],
             text_color=COLORS["text_primary"], corner_radius=8,
-            placeholder_text="https://ejemplo.com/archivo.zip",
+            placeholder_text=t("url_placeholder"),
         )
         self.url_entry.pack(fill="x", pady=(4, 0))
 
         dir_frame = ctk.CTkFrame(self, fg_color="transparent")
         dir_frame.pack(fill="x", padx=28, pady=4)
-        ctk.CTkLabel(dir_frame, text="Guardar en", font=(FONT_FAMILY, 11),
+        ctk.CTkLabel(dir_frame, text=t("save_to"), font=(FONT_FAMILY, 11),
                       text_color=COLORS["text_secondary"]).pack(anchor="w")
         dir_inner = ctk.CTkFrame(dir_frame, fg_color="transparent")
         dir_inner.pack(fill="x", pady=(4, 0))
@@ -620,7 +621,7 @@ class ScheduleDialog(ctk.CTkToplevel):
 
         time_frame = ctk.CTkFrame(self, fg_color="transparent")
         time_frame.pack(fill="x", padx=28, pady=8)
-        ctk.CTkLabel(time_frame, text="Fecha y hora (AAAA-MM-DD HH:MM)", font=(FONT_FAMILY, 11),
+        ctk.CTkLabel(time_frame, text=t("date_time"), font=(FONT_FAMILY, 11),
                       text_color=COLORS["text_secondary"]).pack(anchor="w")
 
         import time as time_mod
@@ -637,7 +638,7 @@ class ScheduleDialog(ctk.CTkToplevel):
 
         conn_frame = ctk.CTkFrame(self, fg_color="transparent")
         conn_frame.pack(fill="x", padx=28, pady=4)
-        ctk.CTkLabel(conn_frame, text="Conexiones", font=(FONT_FAMILY, 11),
+        ctk.CTkLabel(conn_frame, text=t("connections"), font=(FONT_FAMILY, 11),
                       text_color=COLORS["text_secondary"]).pack(side="left")
         self.conn_slider = ctk.CTkSlider(
             conn_frame, from_=1, to=16, number_of_steps=15,
@@ -658,14 +659,14 @@ class ScheduleDialog(ctk.CTkToplevel):
         btn_frame.pack(fill="x", padx=28, pady=(18, 16))
 
         ctk.CTkButton(
-            btn_frame, text="Programar", font=(FONT_FAMILY, 13, "bold"),
+            btn_frame, text=t("schedule_btn"), font=(FONT_FAMILY, 13, "bold"),
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
             height=38, corner_radius=10,
             command=self._on_schedule,
         ).pack(side="right", padx=(8, 0))
 
         ctk.CTkButton(
-            btn_frame, text="Cancelar", font=(FONT_FAMILY, 13),
+            btn_frame, text=t("cancel"), font=(FONT_FAMILY, 13),
             fg_color=COLORS["bg_elevated"], hover_color=COLORS["bg_light"],
             text_color=COLORS["text_secondary"],
             height=38, corner_radius=10,
@@ -681,7 +682,7 @@ class ScheduleDialog(ctk.CTkToplevel):
     def _browse_dir(self) -> None:
         directory = filedialog.askdirectory(
             initialdir=self.dir_entry.get(),
-            title="Seleccionar carpeta de descarga",
+            title=t("select_download_folder"),
         )
         if directory:
             self.dir_entry.delete(0, tk.END)
@@ -690,12 +691,12 @@ class ScheduleDialog(ctk.CTkToplevel):
     def _on_schedule(self) -> None:
         url = self.url_entry.get().strip()
         if not url or not is_valid_url(url):
-            messagebox.showwarning("URL inv\u00e1lida", "Ingresa una URL v\u00e1lida.", parent=self)
+            messagebox.showwarning(t("url_invalid_title"), t("url_invalid_msg"), parent=self)
             return
 
         scheduled_time = self.time_entry.get().strip()
         if not scheduled_time:
-            messagebox.showwarning("Hora vac\u00eda", "Ingresa la fecha y hora.", parent=self)
+            messagebox.showwarning(t("time_empty_title"), t("time_empty_msg"), parent=self)
             return
 
         self.result = {
@@ -723,7 +724,7 @@ class ChecksumDialog(ctk.CTkToplevel):
         self.after(100, self._center_window)
 
         ctk.CTkLabel(
-            self, text="Verificaci\u00f3n de integridad",
+            self, text=t("integrity_check"),
             font=(FONT_FAMILY, 16, "bold"),
             text_color=COLORS["text_primary"],
         ).pack(pady=(20, 12))
@@ -749,7 +750,7 @@ class ChecksumDialog(ctk.CTkToplevel):
             entry.configure(state="disabled")
 
         ctk.CTkButton(
-            self, text="Cerrar", font=(FONT_FAMILY, 12),
+            self, text=t("close"), font=(FONT_FAMILY, 12),
             fg_color=COLORS["bg_elevated"], hover_color=COLORS["bg_light"],
             text_color=COLORS["text_secondary"],
             height=34, corner_radius=10,
@@ -771,8 +772,8 @@ class SettingsDialog(ctk.CTkToplevel):
         self.app = app
         self.config = app.config_manager.config
 
-        self.title("Configuraci\u00f3n")
-        self.geometry("520x580")
+        self.title(t("settings"))
+        self.geometry("520x640")
         self.configure(fg_color=COLORS["bg_dark"])
         self.resizable(False, False)
         self.transient(master)
@@ -781,7 +782,7 @@ class SettingsDialog(ctk.CTkToplevel):
         self.after(100, self._center_window)
 
         header = ctk.CTkLabel(
-            self, text="Configuraci\u00f3n",
+            self, text=t("settings"),
             font=(FONT_FAMILY, 18, "bold"),
             text_color=COLORS["text_primary"],
         )
@@ -793,11 +794,11 @@ class SettingsDialog(ctk.CTkToplevel):
         )
         scroll.pack(fill="both", expand=True, padx=24, pady=(0, 8))
 
-        self._add_section(scroll, "Descargas")
+        self._add_section(scroll, t("section_downloads"))
 
         dir_frame = ctk.CTkFrame(scroll, fg_color="transparent")
         dir_frame.pack(fill="x", pady=5)
-        ctk.CTkLabel(dir_frame, text="Carpeta por defecto:",
+        ctk.CTkLabel(dir_frame, text=t("default_folder"),
                       font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"]).pack(anchor="w")
         dir_inner = ctk.CTkFrame(dir_frame, fg_color="transparent")
         dir_inner.pack(fill="x", pady=(3, 0))
@@ -817,7 +818,7 @@ class SettingsDialog(ctk.CTkToplevel):
 
         conn_frame = ctk.CTkFrame(scroll, fg_color="transparent")
         conn_frame.pack(fill="x", pady=5)
-        ctk.CTkLabel(conn_frame, text="Conexiones por defecto:",
+        ctk.CTkLabel(conn_frame, text=t("default_connections"),
                       font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"]).pack(anchor="w")
         conn_inner = ctk.CTkFrame(conn_frame, fg_color="transparent")
         conn_inner.pack(fill="x", pady=(3, 0))
@@ -837,7 +838,7 @@ class SettingsDialog(ctk.CTkToplevel):
 
         concurrent_frame = ctk.CTkFrame(scroll, fg_color="transparent")
         concurrent_frame.pack(fill="x", pady=5)
-        ctk.CTkLabel(concurrent_frame, text="Descargas simult\u00e1neas:",
+        ctk.CTkLabel(concurrent_frame, text=t("concurrent_downloads"),
                       font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"]).pack(anchor="w")
         concurrent_inner = ctk.CTkFrame(concurrent_frame, fg_color="transparent")
         concurrent_inner.pack(fill="x", pady=(3, 0))
@@ -857,10 +858,10 @@ class SettingsDialog(ctk.CTkToplevel):
             command=lambda v: self.concurrent_label.configure(text=str(int(v)))
         )
 
-        self._add_section(scroll, "L\u00edmite de velocidad")
+        self._add_section(scroll, t("section_speed_limit"))
         speed_frame = ctk.CTkFrame(scroll, fg_color="transparent")
         speed_frame.pack(fill="x", pady=5)
-        ctk.CTkLabel(speed_frame, text="L\u00edmite (KB/s, 0 = sin l\u00edmite):",
+        ctk.CTkLabel(speed_frame, text=t("speed_limit_label"),
                       font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"]).pack(anchor="w")
         self.speed_entry = ctk.CTkEntry(
             speed_frame, height=35, font=(FONT_FAMILY, 11), width=120,
@@ -870,17 +871,17 @@ class SettingsDialog(ctk.CTkToplevel):
         self.speed_entry.pack(anchor="w", pady=(3, 0))
         self.speed_entry.insert(0, str(self.config.speed_limit // 1024))
 
-        self._add_section(scroll, "Proxy")
+        self._add_section(scroll, t("section_proxy"))
         self.proxy_var = ctk.BooleanVar(value=self.config.proxy_enabled)
         ctk.CTkCheckBox(
-            scroll, text="Usar proxy", variable=self.proxy_var,
+            scroll, text=t("use_proxy"), variable=self.proxy_var,
             font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"],
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
         ).pack(anchor="w", pady=5)
 
         proxy_frame = ctk.CTkFrame(scroll, fg_color="transparent")
         proxy_frame.pack(fill="x", pady=3)
-        ctk.CTkLabel(proxy_frame, text="Proxy (ej: http://proxy:8080):",
+        ctk.CTkLabel(proxy_frame, text=t("proxy_label"),
                       font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"]).pack(anchor="w")
         self.proxy_entry = ctk.CTkEntry(
             proxy_frame, height=35, font=(FONT_FAMILY, 11),
@@ -892,49 +893,73 @@ class SettingsDialog(ctk.CTkToplevel):
         if self.config.proxy:
             self.proxy_entry.insert(0, self.config.proxy)
 
-        self._add_section(scroll, "Interfaz")
+        self._add_section(scroll, t("section_interface"))
         self.theme_var = ctk.StringVar(value=self.config.theme)
         theme_frame = ctk.CTkFrame(scroll, fg_color="transparent")
         theme_frame.pack(fill="x", pady=5)
-        ctk.CTkLabel(theme_frame, text="Tema:", font=(FONT_FAMILY, 12),
+        ctk.CTkLabel(theme_frame, text=t("theme_label"), font=(FONT_FAMILY, 12),
                       text_color=COLORS["text_primary"]).pack(side="left")
         ctk.CTkRadioButton(
-            theme_frame, text="Oscuro", variable=self.theme_var, value="dark",
+            theme_frame, text=t("theme_dark"), variable=self.theme_var, value="dark",
             font=(FONT_FAMILY, 11), text_color=COLORS["text_primary"],
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
         ).pack(side="left", padx=(15, 10))
         ctk.CTkRadioButton(
-            theme_frame, text="Claro", variable=self.theme_var, value="light",
+            theme_frame, text=t("theme_light"), variable=self.theme_var, value="light",
             font=(FONT_FAMILY, 11), text_color=COLORS["text_primary"],
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
         ).pack(side="left")
 
         self.clipboard_var = ctk.BooleanVar(value=self.config.clipboard_monitoring)
         ctk.CTkCheckBox(
-            scroll, text="Monitorear portapapeles", variable=self.clipboard_var,
+            scroll, text=t("clipboard_monitoring"), variable=self.clipboard_var,
             font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"],
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
         ).pack(anchor="w", pady=5)
 
         self.tray_var = ctk.BooleanVar(value=self.config.minimize_to_tray)
         ctk.CTkCheckBox(
-            scroll, text="Minimizar a bandeja del sistema", variable=self.tray_var,
+            scroll, text=t("minimize_to_tray"), variable=self.tray_var,
             font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"],
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
         ).pack(anchor="w", pady=5)
+
+        # Language selector
+        self._add_section(scroll, t("section_language"))
+        lang_frame = ctk.CTkFrame(scroll, fg_color="transparent")
+        lang_frame.pack(fill="x", pady=5)
+        ctk.CTkLabel(lang_frame, text=t("language_label"),
+                      font=(FONT_FAMILY, 12), text_color=COLORS["text_primary"]).pack(anchor="w")
+        lang_names = list(AVAILABLE_LANGUAGES.values())
+        lang_codes = list(AVAILABLE_LANGUAGES.keys())
+        current_idx = lang_codes.index(self.config.language) if self.config.language in lang_codes else 0
+        self.lang_menu = ctk.CTkOptionMenu(
+            lang_frame, values=lang_names,
+            font=(FONT_FAMILY, 12),
+            fg_color=COLORS["bg_medium"], button_color=COLORS["accent"],
+            button_hover_color=COLORS["accent_hover"],
+            text_color=COLORS["text_primary"],
+            dropdown_fg_color=COLORS["bg_elevated"],
+            dropdown_hover_color=COLORS["accent"],
+            dropdown_text_color=COLORS["text_primary"],
+        )
+        self.lang_menu.set(lang_names[current_idx])
+        self.lang_menu.pack(anchor="w", pady=(4, 0))
+        ctk.CTkLabel(lang_frame, text=t("restart_required"),
+                      font=(FONT_FAMILY, 10), text_color=COLORS["text_tertiary"]).pack(anchor="w", pady=(4, 0))
 
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
         btn_frame.pack(fill="x", padx=20, pady=(5, 15))
 
         ctk.CTkButton(
-            btn_frame, text="Guardar", font=(FONT_FAMILY, 13, "bold"),
+            btn_frame, text=t("save"), font=(FONT_FAMILY, 13, "bold"),
             fg_color=COLORS["accent"], hover_color=COLORS["accent_hover"],
             height=38, corner_radius=10,
             command=self._save,
         ).pack(side="right", padx=(8, 0))
 
         ctk.CTkButton(
-            btn_frame, text="Cancelar", font=(FONT_FAMILY, 13),
+            btn_frame, text=t("cancel"), font=(FONT_FAMILY, 13),
             fg_color=COLORS["bg_elevated"], hover_color=COLORS["bg_light"],
             text_color=COLORS["text_secondary"],
             height=38, corner_radius=10,
@@ -960,7 +985,7 @@ class SettingsDialog(ctk.CTkToplevel):
     def _browse_dir(self) -> None:
         directory = filedialog.askdirectory(
             initialdir=self.dir_entry.get(),
-            title="Seleccionar carpeta",
+            title=t("select_folder"),
         )
         if directory:
             self.dir_entry.delete(0, tk.END)
@@ -975,6 +1000,12 @@ class SettingsDialog(ctk.CTkToplevel):
         self.config.minimize_to_tray = self.tray_var.get()
         self.config.proxy_enabled = self.proxy_var.get()
         self.config.proxy = self.proxy_entry.get().strip()
+
+        selected_lang_name = self.lang_menu.get()
+        for code, name in AVAILABLE_LANGUAGES.items():
+            if name == selected_lang_name:
+                self.config.language = code
+                break
 
         try:
             speed_kb = int(self.speed_entry.get().strip())
@@ -995,7 +1026,7 @@ class AboutDialog(ctk.CTkToplevel):
 
     def __init__(self, master):
         super().__init__(master)
-        self.title("Acerca de")
+        self.title(t("about"))
         self.geometry("400x360")
         self.configure(fg_color=COLORS["bg_dark"])
         self.resizable(False, False)
@@ -1022,12 +1053,7 @@ class AboutDialog(ctk.CTkToplevel):
             text_color=COLORS["text_secondary"],
         ).pack(pady=(2, 12))
 
-        info_text = (
-            "Gestor de descargas portable para Windows\n\n"
-            "Multi-hilo \u00b7 Pausar/Reanudar \u00b7 Programar\n"
-            "Proxy \u00b7 Checksums \u00b7 Lotes \u00b7 Portapapeles\n"
-            "MediaFire \u00b7 Google Drive \u00b7 Dropbox"
-        )
+        info_text = t("about_description") + "\n\n" + t("about_features")
         ctk.CTkLabel(
             self, text=info_text,
             font=(FONT_FAMILY, 11),
@@ -1036,13 +1062,13 @@ class AboutDialog(ctk.CTkToplevel):
         ).pack(padx=28)
 
         ctk.CTkLabel(
-            self, text="Hecho por iSekro",
+            self, text=t("made_by"),
             font=(FONT_FAMILY, 11, "bold"),
             text_color=COLORS["accent"],
         ).pack(pady=(12, 4))
 
         ctk.CTkButton(
-            self, text="Cerrar", font=(FONT_FAMILY, 12),
+            self, text=t("close"), font=(FONT_FAMILY, 12),
             fg_color=COLORS["bg_elevated"], hover_color=COLORS["bg_light"],
             text_color=COLORS["text_secondary"],
             height=32, corner_radius=10,
@@ -1064,6 +1090,8 @@ class MainWindow(ctk.CTk):
 
         self.config_manager = ConfigManager()
         config = self.config_manager.config
+
+        set_language(config.language)
 
         ctk.set_appearance_mode("dark")
 
@@ -1127,7 +1155,7 @@ class MainWindow(ctk.CTk):
         connections = config.default_connections
         self.engine.add_download(url, download_dir, connections)
         self._refresh_list()
-        self.status_label.configure(text=f"Descarga desde extensión: {url[:60]}")
+        self.status_label.configure(text=t("download_from_extension", url=url[:60]))
 
     def _set_icon(self) -> None:
         """Set the window icon."""
@@ -1155,10 +1183,10 @@ class MainWindow(ctk.CTk):
             tray_image = Image.open(icon_path).resize((64, 64))
 
             menu = pystray.Menu(
-                pystray.MenuItem("Mostrar", self._tray_show),
-                pystray.MenuItem("Nueva descarga", self._tray_new_download),
+                pystray.MenuItem(t("tray_show"), self._tray_show),
+                pystray.MenuItem(t("tray_new_download"), self._tray_new_download),
                 pystray.Menu.SEPARATOR,
-                pystray.MenuItem("Salir", self._tray_quit),
+                pystray.MenuItem(t("tray_quit"), self._tray_quit),
             )
 
             self._tray_icon = pystray.Icon(
@@ -1379,9 +1407,9 @@ class MainWindow(ctk.CTk):
         logo.pack(side="left", padx=(14, 10))
 
         btn_data = [
-            ("\u2795 Nueva", self._add_download),
-            ("\U0001F4E5 Lotes", self._batch_download),
-            ("\u23F0 Programar", self._schedule_download),
+            (t("btn_new"), self._add_download),
+            (t("btn_batch"), self._batch_download),
+            (t("btn_schedule"), self._schedule_download),
             (None, None),
             ("\u25B6", self._resume_selected),
             ("\u23F8", self._pause_selected),
@@ -1422,23 +1450,23 @@ class MainWindow(ctk.CTk):
         sidebar.pack_propagate(False)
 
         ctk.CTkLabel(
-            sidebar, text="Categor\u00edas", font=(FONT_FAMILY, 10, "bold"),
+            sidebar, text=t("categories"), font=(FONT_FAMILY, 10, "bold"),
             text_color=COLORS["text_tertiary"],
         ).pack(pady=(12, 6), padx=14, anchor="w")
 
         categories = [
-            ("Todas", "all", "\U0001F4E5"),
-            ("Descargando", "downloading", "\u2B07"),
-            ("Completadas", "completed", "\u2705"),
-            ("Pausadas", "paused", "\u23F8"),
-            ("Errores", "error", "\u26A0"),
-            ("Programadas", "scheduled", "\u23F0"),
-            ("Comprimidos", "compressed", "\U0001F4E6"),
-            ("Documentos", "documents", "\U0001F4C4"),
-            ("Video", "video", "\U0001F3AC"),
-            ("M\u00fasica", "music", "\U0001F3B5"),
-            ("Programas", "programs", "\U0001F4BF"),
-            ("Im\u00e1genes", "images", "\U0001F5BC"),
+            (t("cat_all"), "all", "\U0001F4E5"),
+            (t("cat_downloading"), "downloading", "\u2B07"),
+            (t("cat_completed"), "completed", "\u2705"),
+            (t("cat_paused"), "paused", "\u23F8"),
+            (t("cat_errors"), "error", "\u26A0"),
+            (t("cat_scheduled"), "scheduled", "\u23F0"),
+            (t("cat_compressed"), "compressed", "\U0001F4E6"),
+            (t("cat_documents"), "documents", "\U0001F4C4"),
+            (t("cat_video"), "video", "\U0001F3AC"),
+            (t("cat_music"), "music", "\U0001F3B5"),
+            (t("cat_programs"), "programs", "\U0001F4BF"),
+            (t("cat_images"), "images", "\U0001F5BC"),
         ]
 
         self._category_buttons = {}
@@ -1459,19 +1487,19 @@ class MainWindow(ctk.CTk):
         shortcut_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
         shortcut_frame.pack(side="bottom", fill="x", padx=14, pady=8)
         ctk.CTkLabel(
-            shortcut_frame, text="Atajos",
+            shortcut_frame, text=t("shortcuts"),
             font=(FONT_FAMILY, 9, "bold"),
             text_color=COLORS["text_tertiary"],
         ).pack(anchor="w", pady=(0, 2))
         shortcuts = [
-            "Ctrl+N  Nueva",
-            "Ctrl+B  Lotes",
-            "Ctrl+T  Programar",
-            "Ctrl+P  Pausar",
-            "Ctrl+R  Reanudar",
-            "Del     Eliminar",
-            "Ctrl+Q  Salir",
-            "F1      Info",
+            t("shortcut_new"),
+            t("shortcut_batch"),
+            t("shortcut_schedule"),
+            t("shortcut_pause"),
+            t("shortcut_resume"),
+            t("shortcut_delete"),
+            t("shortcut_quit"),
+            t("shortcut_info"),
         ]
         for s in shortcuts:
             ctk.CTkLabel(
@@ -1490,8 +1518,8 @@ class MainWindow(ctk.CTk):
         header.pack_propagate(False)
 
         cols = [
-            ("", 44), ("Nombre", 0), ("Tama\u00f1o", 90),
-            ("Progreso", 200), ("Estado", 80), ("", 76),
+            ("", 44), (t("col_name"), 0), (t("col_size"), 90),
+            (t("col_progress"), 200), (t("col_status"), 80), ("", 76),
         ]
         for col_name, width in cols:
             lbl = ctk.CTkLabel(
@@ -1515,7 +1543,7 @@ class MainWindow(ctk.CTk):
 
         self._empty_label = ctk.CTkLabel(
             self.download_list,
-            text="\u2B07\n\nNo hay descargas\n\nCtrl+N para agregar",
+            text=t("no_downloads"),
             font=(FONT_FAMILY, 14),
             text_color=COLORS["text_tertiary"],
         )
@@ -1528,7 +1556,7 @@ class MainWindow(ctk.CTk):
         statusbar.pack_propagate(False)
 
         self.status_label = ctk.CTkLabel(
-            statusbar, text="Listo", font=(FONT_FAMILY, 9),
+            statusbar, text=t("ready"), font=(FONT_FAMILY, 9),
             text_color=COLORS["text_tertiary"],
         )
         self.status_label.pack(side="left", padx=12)
@@ -1540,7 +1568,7 @@ class MainWindow(ctk.CTk):
         self.speed_status.pack(side="right", padx=12)
 
         self.count_label = ctk.CTkLabel(
-            statusbar, text="0 descargas", font=(FONT_FAMILY, 9),
+            statusbar, text=f"0 {t('downloads_count')}", font=(FONT_FAMILY, 9),
             text_color=COLORS["text_tertiary"],
         )
         self.count_label.pack(side="right", padx=12)
@@ -1552,24 +1580,24 @@ class MainWindow(ctk.CTk):
                        font=(FONT_FAMILY, 10), relief="flat", bd=1)
 
         if item.status == DownloadStatus.DOWNLOADING:
-            menu.add_command(label="\u23F8 Pausar", command=lambda: self.engine.pause_download(item.id))
+            menu.add_command(label=t("ctx_pause"), command=lambda: self.engine.pause_download(item.id))
         elif item.status in (DownloadStatus.PAUSED, DownloadStatus.ERROR, DownloadStatus.QUEUED):
-            menu.add_command(label="\u25B6 Reanudar", command=lambda: self.engine.resume_download(item.id))
+            menu.add_command(label=t("ctx_resume"), command=lambda: self.engine.resume_download(item.id))
 
         if item.status == DownloadStatus.DOWNLOADING:
-            menu.add_command(label="\u23F9 Cancelar", command=lambda: self.engine.cancel_download(item.id))
+            menu.add_command(label=t("ctx_cancel"), command=lambda: self.engine.cancel_download(item.id))
 
         menu.add_separator()
 
         if item.status == DownloadStatus.COMPLETED:
-            menu.add_command(label="\U0001F4C2 Abrir carpeta", command=lambda: self._open_folder(item))
-            menu.add_command(label="\U0001F512 Ver checksums", command=lambda: ChecksumDialog(self, item))
+            menu.add_command(label=t("ctx_open_folder"), command=lambda: self._open_folder(item))
+            menu.add_command(label=t("ctx_checksums"), command=lambda: ChecksumDialog(self, item))
             menu.add_separator()
 
-        menu.add_command(label="\U0001F4CB Copiar URL", command=lambda: self._copy_url(item))
+        menu.add_command(label=t("ctx_copy_url"), command=lambda: self._copy_url(item))
         menu.add_separator()
-        menu.add_command(label="\U0001F5D1 Eliminar de la lista", command=self._delete_selected)
-        menu.add_command(label="\U0001F5D1 Eliminar con archivo",
+        menu.add_command(label=t("ctx_remove_from_list"), command=self._delete_selected)
+        menu.add_command(label=t("ctx_delete_with_file"),
                          command=lambda: self._delete_with_file(item))
 
         try:
@@ -1593,7 +1621,7 @@ class MainWindow(ctk.CTk):
 
     def _delete_with_file(self, item: DownloadItem) -> None:
         """Delete download and the downloaded file."""
-        if not messagebox.askyesno("Confirmar", f"\u00bfEliminar '{item.filename}' y su archivo?"):
+        if not messagebox.askyesno(t("confirm"), t("confirm_delete_file", filename=item.filename)):
             return
         self.engine.remove_download(item.id, delete_file=True)
         row = self.download_rows.get(item.id)
@@ -1648,7 +1676,7 @@ class MainWindow(ctk.CTk):
         self, url: str, save_path: str, filename: str, connections: int, scheduled_time: str
     ) -> None:
         self.after(0, lambda: self.status_label.configure(
-            text=f"Programando descarga de {url[:50]}..."
+            text=t("scheduling_download", url=url[:50])
         ))
 
         try:
@@ -1684,20 +1712,20 @@ class MainWindow(ctk.CTk):
 
             self.after(0, lambda: self._add_row(item))
             self.after(0, lambda: self.status_label.configure(
-                text=f"Programada: {item.filename} para {scheduled_time}"
+                text=t("scheduled_status", filename=item.filename, time=scheduled_time)
             ))
         except Exception as exc:
             err_msg = str(exc)
             self.after(0, lambda: messagebox.showerror(
-                "Error", f"No se pudo programar la descarga:\n{err_msg}"
+                t("error"), t("schedule_error", error=err_msg)
             ))
 
     def _add_download_thread(self, url: str, save_path: str, filename: str, connections: int) -> None:
         from krosdownloadmanager.utils.url_resolver import needs_resolution
         if needs_resolution(url):
-            self.after(0, lambda: self.status_label.configure(text="Resolviendo enlace de descarga..."))
+            self.after(0, lambda: self.status_label.configure(text=t("resolving_link")))
         else:
-            self.after(0, lambda: self.status_label.configure(text=f"Obteniendo info de {url[:50]}..."))
+            self.after(0, lambda: self.status_label.configure(text=t("getting_info", url=url[:50])))
 
         try:
             item = self.engine.add_download(
@@ -1709,11 +1737,11 @@ class MainWindow(ctk.CTk):
             )
             self.after(0, lambda: self._add_row(item))
             self.after(0, lambda: self.status_label.configure(
-                text=f"Descargando: {item.filename}"
+                text=t("downloading_status", filename=item.filename)
             ))
         except Exception as exc:
             err_msg = str(exc)
-            self.after(0, lambda: messagebox.showerror("Error", f"No se pudo iniciar la descarga:\n{err_msg}"))
+            self.after(0, lambda: messagebox.showerror(t("error"), t("download_error", error=err_msg)))
 
     def _add_row(self, item: DownloadItem) -> None:
         if self._empty_label.winfo_ismapped():
@@ -1748,7 +1776,7 @@ class MainWindow(ctk.CTk):
 
         item = self.selected_row.item
         if item.status == DownloadStatus.DOWNLOADING:
-            if not messagebox.askyesno("Confirmar", "La descarga est\u00e1 en progreso. \u00bfEliminar?"):
+            if not messagebox.askyesno(t("confirm"), t("confirm_delete_active")):
                 return
 
         self.engine.remove_download(item.id, delete_file=False)
@@ -1833,13 +1861,13 @@ class MainWindow(ctk.CTk):
 
     def _on_complete(self, item: DownloadItem) -> None:
         self.after(0, lambda: self.status_label.configure(
-            text=f"Completado: {item.filename}"
+            text=t("completed_status", filename=item.filename)
         ))
         self._save_downloads()
 
     def _on_error(self, item: DownloadItem) -> None:
         self.after(0, lambda: self.status_label.configure(
-            text=f"Error: {item.filename} - {item.error_message}"
+            text=t("error_status", filename=item.filename, error=str(item.error_message))
         ))
 
     def _batch_update(self) -> None:
@@ -1853,7 +1881,7 @@ class MainWindow(ctk.CTk):
             if item.status == DownloadStatus.DOWNLOADING
         )
         if total_speed > 0:
-            self.speed_status.configure(text=f"Velocidad total: {format_speed(total_speed)}")
+            self.speed_status.configure(text=f"{t('total_speed')}: {format_speed(total_speed)}")
         else:
             self.speed_status.configure(text="")
 
@@ -1873,9 +1901,9 @@ class MainWindow(ctk.CTk):
             1 for item in self.engine.downloads.values()
             if item.scheduled_time and item.status == DownloadStatus.QUEUED
         )
-        parts = [f"{total} descargas", f"{active} activas"]
+        parts = [f"{total} {t('downloads_count')}", f"{active} {t('active_count')}"]
         if scheduled > 0:
-            parts.append(f"{scheduled} programadas")
+            parts.append(f"{scheduled} {t('scheduled_count')}")
         self.count_label.configure(text=" | ".join(parts))
 
     def _start_ui_updater(self) -> None:
@@ -1902,8 +1930,8 @@ class MainWindow(ctk.CTk):
 
     def _prompt_clipboard_download(self, url: str) -> None:
         if messagebox.askyesno(
-            "URL detectada",
-            f"Se detect\u00f3 una URL en el portapapeles:\n\n{url[:80]}...\n\n\u00bfDescargar?",
+            t("url_detected"),
+            t("clipboard_prompt", url=url[:80]),
         ):
             threading.Thread(
                 target=self._add_download_thread,
@@ -1939,8 +1967,8 @@ class MainWindow(ctk.CTk):
 
         if active_downloads:
             if not messagebox.askyesno(
-                "Descargas activas",
-                "Hay descargas en progreso. \u00bfSeguro que deseas salir?",
+                t("active_downloads_title"),
+                t("confirm_quit_active"),
             ):
                 return
 

@@ -2,8 +2,8 @@
 URL resolver for file hosting services.
 
 Resolves indirect download links (e.g., MediaFire, Google Drive, Dropbox,
-SourceForge) into direct download URLs so the download engine can fetch
-the actual file instead of an HTML page.
+SourceForge, YouTube) into direct download URLs so the download engine can
+fetch the actual file instead of an HTML page.
 """
 
 import logging
@@ -11,6 +11,7 @@ import re
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import requests
+import yt_dlp
 
 logger = logging.getLogger(__name__)
 
@@ -187,6 +188,67 @@ def _resolve_sourceforge(url: str, proxy: str = "") -> dict:
 
 
 # ---------------------------------------------------------------------------
+# YouTube (via yt-dlp)
+# ---------------------------------------------------------------------------
+
+_YOUTUBE_PATTERNS = [
+    re.compile(r'https?://(www\.)?youtube\.com/watch\?'),
+    re.compile(r'https?://(www\.)?youtube\.com/shorts/'),
+    re.compile(r'https?://youtu\.be/'),
+    re.compile(r'https?://(www\.)?youtube\.com/embed/'),
+    re.compile(r'https?://m\.youtube\.com/watch\?'),
+]
+
+
+def _is_youtube(url: str) -> bool:
+    return any(p.search(url) for p in _YOUTUBE_PATTERNS)
+
+
+def _resolve_youtube(url: str, proxy: str = "") -> dict:
+    """Extract best direct video URL from YouTube using yt-dlp."""
+    ydl_opts: dict = {
+        "quiet": True,
+        "no_warnings": True,
+        "format": "best[ext=mp4]/best",
+        "noplaylist": True,
+        "skip_download": True,
+    }
+    if proxy:
+        ydl_opts["proxy"] = proxy
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            if not info:
+                return {"url": url, "filename": "", "resolved": False,
+                        "error": "yt-dlp returned no info"}
+
+            direct_url = info.get("url", "")
+            if not direct_url:
+                formats = info.get("formats", [])
+                if formats:
+                    best = formats[-1]
+                    direct_url = best.get("url", "")
+
+            if not direct_url:
+                return {"url": url, "filename": "", "resolved": False,
+                        "error": "Could not extract video URL"}
+
+            title = info.get("title", "video")
+            ext = info.get("ext", "mp4")
+            filename = f"{title}.{ext}"
+            # Sanitize filename
+            filename = re.sub(r'[\\/:*?"<>|]', "_", filename)
+
+            logger.info("YouTube resolved: %s -> %s", url, direct_url[:80])
+            return {"url": direct_url, "filename": filename, "resolved": True}
+
+    except Exception as exc:
+        logger.error("Failed to resolve YouTube URL %s: %s", url, exc)
+        return {"url": url, "filename": "", "resolved": False, "error": str(exc)}
+
+
+# ---------------------------------------------------------------------------
 # Generic redirect resolver
 # ---------------------------------------------------------------------------
 
@@ -223,6 +285,7 @@ def _resolve_generic(url: str, proxy: str = "") -> dict:
 # ---------------------------------------------------------------------------
 
 _RESOLVERS = [
+    (_is_youtube, _resolve_youtube),
     (_is_mediafire, _resolve_mediafire),
     (_is_google_drive, _resolve_google_drive),
     (_is_dropbox, _resolve_dropbox),
