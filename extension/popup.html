@@ -5,19 +5,27 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      width: 320px;
-      min-height: 200px;
+      width: 380px;
+      min-height: 280px;
+      max-height: 520px;
       background: #121212;
       color: #fff;
       font-family: 'Segoe UI', system-ui, sans-serif;
       font-size: 13px;
+      overflow-y: auto;
     }
+    body::-webkit-scrollbar { width: 6px; }
+    body::-webkit-scrollbar-track { background: transparent; }
+    body::-webkit-scrollbar-thumb { background: #404040; border-radius: 3px; }
     .header {
       display: flex;
       align-items: center;
-      padding: 14px 16px;
+      padding: 12px 16px;
       background: #0a0a0a;
       border-bottom: 1px solid #282828;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
     .header-icon {
       font-size: 20px;
@@ -27,11 +35,16 @@
     .header-title {
       font-weight: 700;
       font-size: 14px;
+      flex: 1;
+    }
+    .header-version {
+      color: #727272;
+      font-size: 10px;
     }
     .status-bar {
       display: flex;
       align-items: center;
-      padding: 10px 16px;
+      padding: 8px 16px;
       background: #1a1a1a;
       border-bottom: 1px solid #282828;
     }
@@ -40,16 +53,22 @@
       height: 8px;
       border-radius: 50%;
       margin-right: 8px;
+      flex-shrink: 0;
     }
-    .status-dot.connected { background: #1db954; }
+    .status-dot.connected { background: #1db954; box-shadow: 0 0 6px #1db95480; }
     .status-dot.disconnected { background: #e22134; }
-    .status-text { color: #b3b3b3; font-size: 12px; }
-    .content { padding: 12px 16px; }
+    .status-text { color: #b3b3b3; font-size: 12px; flex: 1; }
+    .status-downloads {
+      color: #1db954;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .content { padding: 10px 16px; }
     .toggle-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 0;
+      padding: 8px 0;
       border-bottom: 1px solid #282828;
     }
     .toggle-label { color: #fff; font-size: 13px; }
@@ -80,43 +99,120 @@
     }
     .toggle input:checked + .toggle-slider { background: #1db954; }
     .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
-    .video-section { padding-top: 10px; }
-    .video-title {
+
+    .section { padding-top: 10px; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .section-title {
       color: #727272;
       font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 8px;
     }
-    .video-item {
+    .section-count {
+      background: #1db954;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    .media-item {
       display: flex;
       align-items: center;
       padding: 8px 10px;
       background: #1a1a1a;
-      border-radius: 6px;
+      border-radius: 8px;
       margin-bottom: 4px;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: background 0.15s, border-color 0.15s;
+      border: 1px solid transparent;
     }
-    .video-item:hover { background: #282828; }
-    .video-item-icon { color: #1db954; margin-right: 8px; font-size: 14px; }
-    .video-item-url {
-      color: #b3b3b3;
-      font-size: 11px;
+    .media-item:hover { background: #282828; border-color: #1db95440; }
+    .media-item-icon {
+      color: #1db954;
+      margin-right: 8px;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .media-item-info { flex: 1; overflow: hidden; }
+    .media-item-name {
+      color: #fff;
+      font-size: 12px;
+      font-weight: 500;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      flex: 1;
     }
+    .media-item-meta {
+      color: #727272;
+      font-size: 10px;
+      margin-top: 2px;
+    }
+    .media-item-btn {
+      background: #1db954;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .media-item-btn:hover { background: #1ed760; }
+    .media-item-btn.sent {
+      background: #1a3a1a;
+      pointer-events: none;
+    }
+
     .empty-text {
       color: #727272;
       text-align: center;
-      padding: 20px 0;
+      padding: 16px 0;
       font-size: 12px;
     }
+
+    .action-bar {
+      display: flex;
+      gap: 6px;
+      padding: 8px 0;
+      border-top: 1px solid #282828;
+      margin-top: 6px;
+    }
+    .action-btn {
+      flex: 1;
+      background: #282828;
+      color: #b3b3b3;
+      border: none;
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      text-align: center;
+    }
+    .action-btn:hover { background: #333; color: #fff; }
+    .action-btn.primary {
+      background: #1db954;
+      color: #fff;
+    }
+    .action-btn.primary:hover { background: #1ed760; }
+
+    .file-section { margin-top: 6px; }
+
     .footer {
-      padding: 10px 16px;
+      padding: 8px 16px;
       text-align: center;
       color: #727272;
       font-size: 10px;
@@ -128,10 +224,12 @@
   <div class="header">
     <span class="header-icon">&#x2B07;</span>
     <span class="header-title">KrosDownloadManager</span>
+    <span class="header-version">v1.0</span>
   </div>
   <div class="status-bar">
     <span id="statusDot" class="status-dot disconnected"></span>
-    <span id="statusText" class="status-text">Verificando conexión...</span>
+    <span id="statusText" class="status-text">Verificando...</span>
+    <span id="activeDownloads" class="status-downloads"></span>
   </div>
   <div class="content">
     <div class="toggle-row">
@@ -141,14 +239,33 @@
         <span class="toggle-slider"></span>
       </label>
     </div>
-    <div class="video-section">
-      <div class="video-title">Videos detectados</div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Videos y media detectados</span>
+        <span id="videoCount" class="section-count" style="display:none">0</span>
+      </div>
       <div id="videoList">
-        <div class="empty-text">Sin videos en esta página</div>
+        <div class="empty-text">Sin media en esta pagina</div>
       </div>
     </div>
+
+    <div class="section file-section">
+      <div class="section-header">
+        <span class="section-title">Archivos descargables</span>
+        <span id="fileCount" class="section-count" style="display:none">0</span>
+      </div>
+      <div id="fileList">
+        <div class="empty-text">Sin archivos detectados</div>
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <button id="btnDownloadAll" class="action-btn primary">Descargar todo</button>
+      <button id="btnRefresh" class="action-btn">Actualizar</button>
+    </div>
   </div>
-  <div class="footer">v1.0 &middot; Hecho por iSekro</div>
+  <div class="footer">Hecho por iSekro</div>
   <script src="popup.js"></script>
 </body>
 </html>

@@ -2,12 +2,14 @@
   "manifest_version": 3,
   "name": "KrosDownloadManager",
   "version": "1.0",
-  "description": "Captura descargas y videos automáticamente para KrosDownloadManager",
+  "description": "Captura descargas y videos automaticamente para KrosDownloadManager",
   "permissions": [
     "downloads",
     "contextMenus",
     "storage",
-    "activeTab"
+    "activeTab",
+    "notifications",
+    "tabs"
   ],
   "host_permissions": [
     "http://localhost:29256/*",
