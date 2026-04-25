@@ -167,7 +167,7 @@ class DownloadRow(ctk.CTkFrame):
             self.configure(fg_color=COLORS["row_even"], border_color=COLORS["border"])
 
     def _get_file_icon(self) -> str:
-        ext = os.path.splitext(self.item.filename)[1].lower()
+        ext = os.path.splitext(str(self.item.filename or ""))[1].lower()
         icon_map = {
             ".zip": "\U0001F4E6", ".rar": "\U0001F4E6", ".7z": "\U0001F4E6",
             ".tar": "\U0001F4E6", ".gz": "\U0001F4E6",
@@ -1813,7 +1813,7 @@ class MainWindow(ctk.CTk):
             elif self._filter == "scheduled":
                 show = bool(row.item.scheduled_time) and row.item.status == DownloadStatus.QUEUED
             elif self._filter in category_ext_map:
-                ext = os.path.splitext(row.item.filename)[1].lower()
+                ext = os.path.splitext(str(row.item.filename or ""))[1].lower()
                 show = ext in category_ext_map[self._filter]
 
             if show:

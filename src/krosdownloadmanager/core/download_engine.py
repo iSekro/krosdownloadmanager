@@ -96,8 +96,8 @@ class DownloadItem:
     def from_dict(cls, data: dict) -> "DownloadItem":
         item = cls(
             url=data["url"],
-            save_path=data["save_path"],
-            filename=data["filename"],
+            save_path=str(data.get("save_path", "")),
+            filename=str(data.get("filename", "")),
             file_size=data.get("file_size", 0),
             downloaded_bytes=data.get("downloaded_bytes", 0),
             status=DownloadStatus(data.get("status", "queued")),
