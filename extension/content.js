@@ -339,6 +339,52 @@
     } catch (_e) { /* not supported */ }
   }
 
+  // ---- Click Interception for Download Links ----
+  // Prevents Chrome's "Save As" dialog by catching clicks before the browser
+  // processes them, sending the URL directly to KrosDownloadManager.
+
+  const ALL_INTERCEPT_EXTENSIONS = [...new Set([...DOWNLOAD_EXTENSIONS, ...MEDIA_EXTENSIONS])];
+
+  function shouldInterceptLink(link) {
+    if (!link || !link.href) return false;
+    const href = link.href;
+    if (!href.startsWith("http")) return false;
+    if (link.hasAttribute("download")) return true;
+    const ext = getFileExtension(href);
+    return ALL_INTERCEPT_EXTENSIONS.includes(ext);
+  }
+
+  document.addEventListener("click", async (e) => {
+    const link = e.target.closest("a[href]");
+    if (!link || !shouldInterceptLink(link)) return;
+
+    try {
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ type: "check_status" }, (resp) => {
+          if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
+          else resolve(resp);
+        });
+      });
+
+      if (response && response.connected) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+
+        const href = link.href;
+        const filename = link.download || getFilenameFromUrl(href);
+        chrome.runtime.sendMessage({
+          type: "download_file",
+          url: href,
+          filename: filename,
+          referrer: window.location.href,
+        });
+      }
+    } catch (_e) {
+      // Extension context invalid or app not running — let browser handle normally
+    }
+  }, true); // Capture phase to intercept before other handlers
+
   // Initial scan
   setTimeout(() => {
     const videos = extractVideoSources();

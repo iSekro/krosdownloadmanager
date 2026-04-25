@@ -106,6 +106,9 @@ function isMediaContentType(contentType) {
 }
 
 // ---- Download Interception ----
+// Intercept ALL browser downloads when the app is running.
+// This serves as a fallback for downloads not caught by the content script
+// click handler (e.g., programmatic downloads, Content-Disposition responses).
 
 chrome.downloads.onCreated.addListener(async (item) => {
   const data = await chrome.storage.local.get("enabled");
@@ -114,16 +117,11 @@ chrome.downloads.onCreated.addListener(async (item) => {
   const url = item.finalUrl || item.url;
   if (!url || url.startsWith("blob:") || url.startsWith("data:") || url.startsWith("chrome:")) return;
 
-  const isDownloadFile = hasDownloadExtension(url);
-  const isLargeFile = item.totalBytes > MIN_SIZE_BYTES || item.totalBytes === -1;
-
-  if (isDownloadFile || isLargeFile) {
-    if (await checkAppStatus()) {
-      chrome.downloads.cancel(item.id);
-      chrome.downloads.erase({ id: item.id });
-      const filename = item.filename ? item.filename.split(/[/\\]/).pop() : getFilenameFromUrl(url);
-      await sendToApp(url, filename, item.referrer || "", false);
-    }
+  if (await checkAppStatus()) {
+    chrome.downloads.cancel(item.id);
+    chrome.downloads.erase({ id: item.id });
+    const filename = item.filename ? item.filename.split(/[/\\]/).pop() : getFilenameFromUrl(url);
+    await sendToApp(url, filename, item.referrer || "", false);
   }
 });
 
