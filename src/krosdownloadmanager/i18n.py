@@ -903,6 +903,56 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "fr": "Sélectionner un dossier",
         "de": "Ordner auswählen",
     },
+
+    # ---- Search ----
+    "search_placeholder": {
+        "es": "Buscar descargas...",
+        "en": "Search downloads...",
+        "pt": "Buscar downloads...",
+        "fr": "Rechercher des téléchargements...",
+        "de": "Downloads suchen...",
+    },
+
+    # ---- Empty state ----
+    "empty_hint": {
+        "es": "Ctrl+N para agregar  \u2022  Arrastra una URL aquí",
+        "en": "Ctrl+N to add  \u2022  Drop a URL here",
+        "pt": "Ctrl+N para adicionar  \u2022  Arraste uma URL aqui",
+        "fr": "Ctrl+N pour ajouter  \u2022  Glissez une URL ici",
+        "de": "Ctrl+N zum Hinzufügen  \u2022  URL hierher ziehen",
+    },
+
+    # ---- Toast notifications ----
+    "toast_complete": {
+        "es": "{filename} \u2014 descarga completada",
+        "en": "{filename} \u2014 download complete",
+        "pt": "{filename} \u2014 download concluído",
+        "fr": "{filename} \u2014 téléchargement terminé",
+        "de": "{filename} \u2014 Download abgeschlossen",
+    },
+    "toast_error": {
+        "es": "{filename} \u2014 error en la descarga",
+        "en": "{filename} \u2014 download failed",
+        "pt": "{filename} \u2014 erro no download",
+        "fr": "{filename} \u2014 échec du téléchargement",
+        "de": "{filename} \u2014 Download fehlgeschlagen",
+    },
+    "toast_dropped": {
+        "es": "{count} URL(s) agregada(s)",
+        "en": "{count} URL(s) added",
+        "pt": "{count} URL(s) adicionada(s)",
+        "fr": "{count} URL(s) ajoutée(s)",
+        "de": "{count} URL(s) hinzugefügt",
+    },
+
+    # ---- Context menu: open file ----
+    "ctx_open_file": {
+        "es": "Abrir archivo",
+        "en": "Open file",
+        "pt": "Abrir arquivo",
+        "fr": "Ouvrir le fichier",
+        "de": "Datei öffnen",
+    },
 }
 
 AVAILABLE_LANGUAGES = {

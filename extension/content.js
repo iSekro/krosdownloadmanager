@@ -354,6 +354,27 @@
     return ALL_INTERCEPT_EXTENSIONS.includes(ext);
   }
 
+  function showCaptureToast(filename) {
+    const existing = document.getElementById("kros-toast");
+    if (existing) existing.remove();
+    const toast = document.createElement("div");
+    toast.id = "kros-toast";
+    toast.textContent = "\u2B07 " + (filename || "Download") + " \u2192 KrosDownloadManager";
+    Object.assign(toast.style, {
+      position: "fixed", bottom: "20px", right: "20px", zIndex: "2147483647",
+      background: "#1db954", color: "#fff", padding: "10px 18px",
+      borderRadius: "8px", fontSize: "13px", fontFamily: "Segoe UI, system-ui, sans-serif",
+      fontWeight: "600", boxShadow: "0 4px 16px rgba(0,0,0,.3)",
+      opacity: "0", transition: "opacity .3s ease", pointerEvents: "none",
+    });
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => { toast.style.opacity = "1"; });
+    setTimeout(() => {
+      toast.style.opacity = "0";
+      setTimeout(() => toast.remove(), 400);
+    }, 2500);
+  }
+
   document.addEventListener("click", async (e) => {
     const link = e.target.closest("a[href]");
     if (!link || !shouldInterceptLink(link)) return;
@@ -379,6 +400,7 @@
           filename: filename,
           referrer: window.location.href,
         });
+        showCaptureToast(filename);
       }
     } catch (_e) {
       // Extension context invalid or app not running — let browser handle normally

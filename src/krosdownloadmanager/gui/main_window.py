@@ -155,6 +155,7 @@ class DownloadRow(ctk.CTkFrame):
         for widget in [self, self.icon_label, self.name_label, info_frame]:
             widget.bind("<Button-1>", self._on_click)
             widget.bind("<Button-3>", self._on_right_click)
+            widget.bind("<Double-Button-1>", self._on_double_click)
 
         self.bind("<Enter>", self._on_hover_enter)
         self.bind("<Leave>", self._on_hover_leave)
@@ -231,6 +232,19 @@ class DownloadRow(ctk.CTkFrame):
     def _on_cancel(self) -> None:
         self.app.engine.cancel_download(self.item.id)
 
+    def _on_double_click(self, event=None) -> None:
+        if self.item.status == DownloadStatus.COMPLETED:
+            filepath = os.path.join(self.item.save_path, self.item.filename)
+            if os.path.exists(filepath):
+                if hasattr(os, "startfile"):
+                    os.startfile(filepath)
+                else:
+                    os.system(f'xdg-open "{filepath}"')
+        elif self.item.status == DownloadStatus.DOWNLOADING:
+            self.app.engine.pause_download(self.item.id)
+        elif self.item.status in (DownloadStatus.PAUSED, DownloadStatus.ERROR, DownloadStatus.QUEUED):
+            self.app.engine.resume_download(self.item.id)
+
     def _on_click(self, event=None) -> None:
         self.app.select_row(self)
 
@@ -261,6 +275,33 @@ class DownloadRow(ctk.CTkFrame):
         downloaded_text = format_size(self.item.downloaded_bytes)
         total_text = format_size(self.item.file_size) if self.item.file_size > 0 else "?"
         self.size_label.configure(text=f"{downloaded_text} / {total_text}")
+
+
+class ToastNotification(ctk.CTkFrame):
+    """Transient toast notification that auto-dismisses."""
+
+    def __init__(self, master, message: str, icon: str = "\u2705",
+                 duration_ms: int = 3000, fg: str = COLORS["accent"]):
+        super().__init__(
+            master, fg_color=COLORS["bg_elevated"],
+            corner_radius=12, border_width=1, border_color=COLORS["border_light"],
+        )
+        self.place(relx=1.0, rely=1.0, anchor="se", x=-16, y=-40)
+        self.lift()
+
+        inner = ctk.CTkFrame(self, fg_color="transparent")
+        inner.pack(padx=14, pady=10)
+
+        ctk.CTkLabel(
+            inner, text=icon, font=("Segoe UI Emoji", 16), text_color=fg,
+        ).pack(side="left", padx=(0, 8))
+
+        ctk.CTkLabel(
+            inner, text=message, font=(FONT_FAMILY, 11),
+            text_color=COLORS["text_primary"], wraplength=280, anchor="w",
+        ).pack(side="left")
+
+        self.after(duration_ms, self.destroy)
 
 
 class AddDownloadDialog(ctk.CTkToplevel):
@@ -1131,6 +1172,7 @@ class MainWindow(ctk.CTk):
         self._build_ui()
         self._bind_shortcuts()
         self._setup_resize_grips()
+        self._setup_drop_target()
         self._load_downloads()
 
         if config.clipboard_monitoring:
@@ -1264,11 +1306,11 @@ class MainWindow(ctk.CTk):
         self._titlebar.pack(fill="x")
         self._titlebar.pack_propagate(False)
 
-        title_label = ctk.CTkLabel(
+        self._title_label = ctk.CTkLabel(
             self._titlebar, text="  \u2B07  KrosDownloadManager",
             font=(FONT_FAMILY, 11), text_color=COLORS["text_tertiary"],
         )
-        title_label.pack(side="left", padx=8)
+        self._title_label.pack(side="left", padx=8)
 
         close_btn = ctk.CTkButton(
             self._titlebar, text="\u2715", width=46, height=32,
@@ -1297,7 +1339,7 @@ class MainWindow(ctk.CTk):
         )
         min_btn.pack(side="right")
 
-        for w in [self._titlebar, title_label]:
+        for w in [self._titlebar, self._title_label]:
             w.bind("<Button-1>", self._on_titlebar_press)
             w.bind("<B1-Motion>", self._on_titlebar_drag)
             w.bind("<Double-Button-1>", lambda e: self._toggle_maximize())
@@ -1359,6 +1401,33 @@ class MainWindow(ctk.CTk):
         corner.place(relx=1.0, rely=1.0, anchor="se")
         corner.bind("<Button-1>", lambda e: self._resize_start(e, "corner"))
         corner.bind("<B1-Motion>", lambda e: self._resize_drag(e, "corner"))
+
+    def _setup_drop_target(self) -> None:
+        """Enable URL drag-and-drop onto the window (TkDnD2 if available)."""
+        try:
+            self.tk.eval("package require tkdnd")
+            self.tk.eval(
+                f'tkdnd::drop_target register {self.download_list._parent_canvas} *'
+            )
+            self.download_list._parent_canvas.bind(
+                "<<Drop>>", self._on_drop,
+            )
+        except tk.TclError:
+            pass
+
+    def _on_drop(self, event) -> None:
+        """Handle dropped text/URLs."""
+        text = event.data.strip() if hasattr(event, "data") else ""
+        urls = extract_urls_from_text(text)
+        if urls:
+            config = self.config_manager.config
+            for url in urls:
+                threading.Thread(
+                    target=self._add_download_thread,
+                    args=(url, config.download_dir, "", config.default_connections),
+                    daemon=True,
+                ).start()
+            self._show_toast(t("toast_dropped", count=str(len(urls))))
 
     def _resize_start(self, event, side: str) -> None:
         self._resize_data = {
@@ -1513,8 +1582,29 @@ class MainWindow(ctk.CTk):
         main_frame = ctk.CTkFrame(self._main_container, fg_color=COLORS["bg_dark"], corner_radius=0)
         main_frame.pack(side="left", fill="both", expand=True)
 
+        # Search bar
+        search_frame = ctk.CTkFrame(main_frame, fg_color=COLORS["bg_dark"], height=36, corner_radius=0)
+        search_frame.pack(fill="x", padx=8, pady=(6, 0))
+        search_frame.pack_propagate(False)
+
+        ctk.CTkLabel(
+            search_frame, text="\U0001F50D", font=("Segoe UI Emoji", 12),
+            text_color=COLORS["text_tertiary"],
+        ).pack(side="left", padx=(4, 2))
+
+        self._search_var = ctk.StringVar()
+        self._search_var.trace_add("write", lambda *_: self._apply_filter())
+        self._search_entry = ctk.CTkEntry(
+            search_frame, textvariable=self._search_var,
+            placeholder_text=t("search_placeholder"),
+            font=(FONT_FAMILY, 11), height=28,
+            fg_color=COLORS["bg_medium"], border_color=COLORS["border"],
+            text_color=COLORS["text_primary"], corner_radius=6,
+        )
+        self._search_entry.pack(side="left", fill="x", expand=True, padx=4)
+
         header = ctk.CTkFrame(main_frame, fg_color=COLORS["bg_dark"], height=32, corner_radius=0)
-        header.pack(fill="x", padx=8, pady=(6, 0))
+        header.pack(fill="x", padx=8, pady=(4, 0))
         header.pack_propagate(False)
 
         cols = [
@@ -1541,12 +1631,34 @@ class MainWindow(ctk.CTk):
         )
         self.download_list.pack(fill="both", expand=True, padx=6, pady=4)
 
+        # Better empty state
+        self._empty_frame = ctk.CTkFrame(self.download_list, fg_color="transparent")
+        self._empty_icon = ctk.CTkLabel(
+            self._empty_frame, text="\u2B07",
+            font=("Segoe UI Emoji", 40), text_color=COLORS["border_light"],
+        )
+        self._empty_icon.pack(pady=(30, 8))
         self._empty_label = ctk.CTkLabel(
-            self.download_list,
+            self._empty_frame,
             text=t("no_downloads"),
             font=(FONT_FAMILY, 14),
             text_color=COLORS["text_tertiary"],
         )
+        self._empty_label.pack()
+        self._empty_hint = ctk.CTkLabel(
+            self._empty_frame,
+            text=t("empty_hint"),
+            font=(FONT_FAMILY, 11),
+            text_color=COLORS["text_tertiary"],
+        )
+        self._empty_hint.pack(pady=(4, 0))
+        self._empty_btn = ctk.CTkButton(
+            self._empty_frame, text=t("btn_new"),
+            font=(FONT_FAMILY, 12), fg_color=COLORS["accent"],
+            hover_color=COLORS["accent_hover"], text_color=COLORS["text_primary"],
+            height=34, corner_radius=8, command=self._add_download,
+        )
+        self._empty_btn.pack(pady=(14, 0))
 
     def _build_statusbar(self) -> None:
         sep = ctk.CTkFrame(self, fg_color=COLORS["border"], height=1, corner_radius=0)
@@ -1590,6 +1702,7 @@ class MainWindow(ctk.CTk):
         menu.add_separator()
 
         if item.status == DownloadStatus.COMPLETED:
+            menu.add_command(label=t("ctx_open_file"), command=lambda: self._open_file(item))
             menu.add_command(label=t("ctx_open_folder"), command=lambda: self._open_folder(item))
             menu.add_command(label=t("ctx_checksums"), command=lambda: ChecksumDialog(self, item))
             menu.add_separator()
@@ -1604,6 +1717,15 @@ class MainWindow(ctk.CTk):
             menu.tk_popup(event.x_root, event.y_root)
         finally:
             menu.grab_release()
+
+    def _open_file(self, item: DownloadItem) -> None:
+        """Open the downloaded file with the default application."""
+        filepath = os.path.join(item.save_path, item.filename)
+        if os.path.exists(filepath):
+            if hasattr(os, "startfile"):
+                os.startfile(filepath)
+            else:
+                os.system(f'xdg-open "{filepath}"')
 
     def _open_folder(self, item: DownloadItem) -> None:
         """Open the folder containing the downloaded file."""
@@ -1631,7 +1753,7 @@ class MainWindow(ctk.CTk):
         self.selected_row = None
         self._update_counts()
         if not self.download_rows:
-            self._empty_label.pack(pady=50)
+            self._empty_frame.pack(fill="x", pady=10)
 
     def _add_download(self) -> None:
         dialog = AddDownloadDialog(self, self)
@@ -1744,8 +1866,8 @@ class MainWindow(ctk.CTk):
             self.after(0, lambda: messagebox.showerror(t("error"), t("download_error", error=err_msg)))
 
     def _add_row(self, item: DownloadItem) -> None:
-        if self._empty_label.winfo_ismapped():
-            self._empty_label.pack_forget()
+        if self._empty_frame.winfo_ismapped():
+            self._empty_frame.pack_forget()
 
         row = DownloadRow(self.download_list, item, self)
         row.pack(fill="x", padx=4, pady=2)
@@ -1786,7 +1908,7 @@ class MainWindow(ctk.CTk):
         self._update_counts()
 
         if not self.download_rows:
-            self._empty_label.pack(pady=50)
+            self._empty_frame.pack(fill="x", pady=10)
 
     def _resume_all(self) -> None:
         for download_id, item in self.engine.downloads.items():
@@ -1833,6 +1955,8 @@ class MainWindow(ctk.CTk):
             "images": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".webp"],
         }
 
+        search_query = self._search_var.get().strip().lower() if hasattr(self, "_search_var") else ""
+
         for download_id, row in self.download_rows.items():
             show = True
 
@@ -1843,6 +1967,11 @@ class MainWindow(ctk.CTk):
             elif self._filter in category_ext_map:
                 ext = os.path.splitext(str(row.item.filename or ""))[1].lower()
                 show = ext in category_ext_map[self._filter]
+
+            if show and search_query:
+                fname = str(row.item.filename or "").lower()
+                url = str(row.item.url or "").lower()
+                show = search_query in fname or search_query in url
 
             if show:
                 if not row.winfo_ismapped():
@@ -1863,12 +1992,23 @@ class MainWindow(ctk.CTk):
         self.after(0, lambda: self.status_label.configure(
             text=t("completed_status", filename=item.filename)
         ))
+        self.after(0, lambda: self._show_toast(
+            t("toast_complete", filename=item.filename), icon="\u2705",
+        ))
         self._save_downloads()
 
     def _on_error(self, item: DownloadItem) -> None:
         self.after(0, lambda: self.status_label.configure(
             text=t("error_status", filename=item.filename, error=str(item.error_message))
         ))
+        self.after(0, lambda: self._show_toast(
+            t("toast_error", filename=item.filename), icon="\u26A0", fg=COLORS["error"],
+        ))
+
+    def _show_toast(self, message: str, icon: str = "\u2705", fg: str = COLORS["accent"]) -> None:
+        """Show a temporary toast notification."""
+        if self.config_manager.config.show_notifications:
+            ToastNotification(self, message, icon=icon, fg=fg)
 
     def _batch_update(self) -> None:
         self._update_pending = False
@@ -1881,9 +2021,14 @@ class MainWindow(ctk.CTk):
             if item.status == DownloadStatus.DOWNLOADING
         )
         if total_speed > 0:
-            self.speed_status.configure(text=f"{t('total_speed')}: {format_speed(total_speed)}")
+            speed_text = format_speed(total_speed)
+            self.speed_status.configure(text=f"{t('total_speed')}: {speed_text}")
+            self._title_label.configure(
+                text=f"  \u2B07  KrosDownloadManager  \u2022  {speed_text}"
+            )
         else:
             self.speed_status.configure(text="")
+            self._title_label.configure(text="  \u2B07  KrosDownloadManager")
 
     def _update_row(self, download_id: str) -> None:
         row = self.download_rows.get(download_id)
@@ -1953,7 +2098,7 @@ class MainWindow(ctk.CTk):
             self._add_row(item)
 
         if not self.download_rows:
-            self._empty_label.pack(pady=50)
+            self._empty_frame.pack(fill="x", pady=10)
 
     def _on_close(self) -> None:
         active_downloads = any(

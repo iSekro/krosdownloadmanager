@@ -6,6 +6,7 @@ from krosdownloadmanager.core.config import AppConfig, ConfigManager
 from krosdownloadmanager.core.download_engine import (
     DownloadItem,
     DownloadStatus,
+    _parse_content_disposition,
     extract_filename_from_url,
 )
 
@@ -140,3 +141,24 @@ def test_config_manager_downloads():
         loaded = manager.load_downloads()
         assert len(loaded) == 2
         assert loaded[0]["filename"] == "file1.zip"
+
+
+def test_parse_content_disposition_standard():
+    assert _parse_content_disposition('attachment; filename="report.pdf"') == "report.pdf"
+    assert _parse_content_disposition("attachment; filename=report.pdf") == "report.pdf"
+    assert _parse_content_disposition("attachment; filename='report.pdf'") == "report.pdf"
+
+
+def test_parse_content_disposition_rfc5987():
+    cd = "attachment; filename*=UTF-8''t%C3%A9l%C3%A9chargement.pdf"
+    assert _parse_content_disposition(cd) == "téléchargement.pdf"
+
+
+def test_parse_content_disposition_rfc5987_priority():
+    cd = "attachment; filename=\"fallback.pdf\"; filename*=UTF-8''correct.pdf"
+    assert _parse_content_disposition(cd) == "correct.pdf"
+
+
+def test_parse_content_disposition_empty():
+    assert _parse_content_disposition("inline") == ""
+    assert _parse_content_disposition("") == ""
