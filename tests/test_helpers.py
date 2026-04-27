@@ -1,12 +1,14 @@
 """Tests for utility helper functions."""
 
 from krosdownloadmanager.utils.helpers import (
+    extract_urls_from_text,
+    format_eta,
     format_size,
     format_speed,
+    get_category_for_extension,
     is_valid_url,
     parse_url_from_clipboard,
     sanitize_filename,
-    get_category_for_extension,
 )
 
 
@@ -86,3 +88,41 @@ def test_get_category_for_extension():
     assert get_category_for_extension(".mp4", categories) == "Video"
     assert get_category_for_extension(".mp3", categories) == "Music"
     assert get_category_for_extension(".xyz", categories) == "General"
+
+
+def test_format_eta_zero():
+    assert format_eta(0) == "00:00"
+
+
+def test_format_eta_seconds():
+    assert format_eta(65) == "01:05"
+
+
+def test_format_eta_hours():
+    result = format_eta(7200)
+    assert "h" in result
+
+
+def test_format_eta_days():
+    result = format_eta(100000)
+    assert "d" in result
+
+
+def test_extract_urls_from_text():
+    text = "Download from https://example.com/file1.zip and https://example.com/file2.exe here"
+    urls = extract_urls_from_text(text)
+    assert len(urls) == 2
+    assert "https://example.com/file1.zip" in urls
+    assert "https://example.com/file2.exe" in urls
+
+
+def test_extract_urls_from_text_empty():
+    assert extract_urls_from_text("no urls here") == []
+
+
+def test_extract_urls_from_text_multiline():
+    text = """https://example.com/file1.zip
+https://example.com/file2.zip
+https://example.com/file3.zip"""
+    urls = extract_urls_from_text(text)
+    assert len(urls) == 3

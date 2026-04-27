@@ -1,14 +1,14 @@
 """Tests for the download engine."""
 
-import os
 import tempfile
 
+from krosdownloadmanager.core.config import AppConfig, ConfigManager
 from krosdownloadmanager.core.download_engine import (
     DownloadItem,
     DownloadStatus,
+    _parse_content_disposition,
     extract_filename_from_url,
 )
-from krosdownloadmanager.core.config import AppConfig, ConfigManager
 
 
 def test_download_item_creation():
@@ -49,6 +49,42 @@ def test_download_item_serialization():
     assert restored.status == DownloadStatus.COMPLETED
 
 
+def test_download_item_serialization_with_checksums():
+    item = DownloadItem(
+        url="https://example.com/file.zip",
+        save_path="/tmp/downloads",
+        filename="file.zip",
+        file_size=1024,
+        status=DownloadStatus.COMPLETED,
+        checksum_md5="d41d8cd98f00b204e9800998ecf8427e",
+        checksum_sha256="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    )
+    data = item.to_dict()
+    assert data["checksum_md5"] == "d41d8cd98f00b204e9800998ecf8427e"
+    assert data["checksum_sha256"] == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+    restored = DownloadItem.from_dict(data)
+    assert restored.checksum_md5 == item.checksum_md5
+    assert restored.checksum_sha256 == item.checksum_sha256
+
+
+def test_download_item_with_schedule():
+    item = DownloadItem(
+        url="https://example.com/file.zip",
+        save_path="/tmp/downloads",
+        filename="file.zip",
+        scheduled_time="2025-12-31 23:00",
+        priority=5,
+    )
+    data = item.to_dict()
+    assert data["scheduled_time"] == "2025-12-31 23:00"
+    assert data["priority"] == 5
+
+    restored = DownloadItem.from_dict(data)
+    assert restored.scheduled_time == "2025-12-31 23:00"
+    assert restored.priority == 5
+
+
 def test_extract_filename_from_url():
     assert extract_filename_from_url("https://example.com/file.zip") == "file.zip"
     assert extract_filename_from_url("https://example.com/path/to/document.pdf") == "document.pdf"
@@ -62,6 +98,8 @@ def test_app_config_defaults():
     assert config.speed_limit == 0
     assert config.theme == "dark"
     assert "Downloads" in config.download_dir
+    assert config.proxy == ""
+    assert config.proxy_enabled is False
 
 
 def test_config_manager():
@@ -74,6 +112,18 @@ def test_config_manager():
         manager2 = ConfigManager(config_dir=tmpdir)
         assert manager2.config.default_connections == 16
         assert manager2.config.speed_limit == 1024 * 100
+
+
+def test_config_manager_proxy():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        manager = ConfigManager(config_dir=tmpdir)
+        manager.config.proxy = "http://proxy:8080"
+        manager.config.proxy_enabled = True
+        manager.save_config()
+
+        manager2 = ConfigManager(config_dir=tmpdir)
+        assert manager2.config.proxy == "http://proxy:8080"
+        assert manager2.config.proxy_enabled is True
 
 
 def test_config_manager_downloads():
@@ -91,3 +141,24 @@ def test_config_manager_downloads():
         loaded = manager.load_downloads()
         assert len(loaded) == 2
         assert loaded[0]["filename"] == "file1.zip"
+
+
+def test_parse_content_disposition_standard():
+    assert _parse_content_disposition('attachment; filename="report.pdf"') == "report.pdf"
+    assert _parse_content_disposition("attachment; filename=report.pdf") == "report.pdf"
+    assert _parse_content_disposition("attachment; filename='report.pdf'") == "report.pdf"
+
+
+def test_parse_content_disposition_rfc5987():
+    cd = "attachment; filename*=UTF-8''t%C3%A9l%C3%A9chargement.pdf"
+    assert _parse_content_disposition(cd) == "téléchargement.pdf"
+
+
+def test_parse_content_disposition_rfc5987_priority():
+    cd = "attachment; filename=\"fallback.pdf\"; filename*=UTF-8''correct.pdf"
+    assert _parse_content_disposition(cd) == "correct.pdf"
+
+
+def test_parse_content_disposition_empty():
+    assert _parse_content_disposition("inline") == ""
+    assert _parse_content_disposition("") == ""

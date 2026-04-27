@@ -15,6 +15,10 @@ from typing import Callable, Optional
 from urllib.parse import unquote, urlparse
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+from krosdownloadmanager.utils.url_resolver import needs_resolution, resolve_url
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +61,11 @@ class DownloadItem:
     date_added: str = ""
     date_completed: str = ""
     checksum_md5: str = ""
+    checksum_sha256: str = ""
     progress: float = 0.0
     speed_limit: int = 0  # bytes/s, 0 = unlimited
+    scheduled_time: str = ""  # ISO format, empty = immediate
+    priority: int = 0  # higher = more priority
 
     @property
     def id(self) -> str:
@@ -79,14 +86,18 @@ class DownloadItem:
             "date_completed": self.date_completed,
             "progress": self.progress,
             "speed_limit": self.speed_limit,
+            "checksum_md5": self.checksum_md5,
+            "checksum_sha256": self.checksum_sha256,
+            "scheduled_time": self.scheduled_time,
+            "priority": self.priority,
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "DownloadItem":
         item = cls(
             url=data["url"],
-            save_path=data["save_path"],
-            filename=data["filename"],
+            save_path=str(data.get("save_path", "")),
+            filename=str(data.get("filename", "")),
             file_size=data.get("file_size", 0),
             downloaded_bytes=data.get("downloaded_bytes", 0),
             status=DownloadStatus(data.get("status", "queued")),
@@ -97,15 +108,39 @@ class DownloadItem:
             date_completed=data.get("date_completed", ""),
             progress=data.get("progress", 0.0),
             speed_limit=data.get("speed_limit", 0),
+            checksum_md5=data.get("checksum_md5", ""),
+            checksum_sha256=data.get("checksum_sha256", ""),
+            scheduled_time=data.get("scheduled_time", ""),
+            priority=data.get("priority", 0),
         )
         return item
 
 
+def _parse_content_disposition(cd: str) -> str:
+    """Parse Content-Disposition header (RFC 6266 / RFC 5987)."""
+    import re as _re
+
+    # RFC 5987: filename*=UTF-8''encoded_name (takes priority)
+    match = _re.search(r"filename\*\s*=\s*(?:UTF-8|utf-8)''(.+?)(?:;|$)", cd)
+    if match:
+        from urllib.parse import unquote as _unquote
+        return _unquote(match.group(1).strip())
+
+    # Standard: filename="name" or filename=name
+    match = _re.search(r'filename\s*=\s*"([^"]+)"', cd)
+    if match:
+        return match.group(1).strip()
+    match = _re.search(r"filename\s*=\s*([^;\s]+)", cd)
+    if match:
+        return match.group(1).strip().strip("'\"")
+
+    return ""
+
+
 def extract_filename_from_url(url: str, response: Optional[requests.Response] = None) -> str:
     if response and "Content-Disposition" in response.headers:
-        cd = response.headers["Content-Disposition"]
-        if "filename=" in cd:
-            fname = cd.split("filename=")[-1].strip('"').strip("'")
+        fname = _parse_content_disposition(response.headers["Content-Disposition"])
+        if fname:
             return fname
 
     parsed = urlparse(url)
@@ -132,6 +167,7 @@ class DownloadEngine:
         max_concurrent_downloads: int = 3,
         default_connections: int = 8,
         speed_limit: int = 0,
+        proxy: str = "",
     ):
         self.temp_dir = temp_dir or os.path.join(os.path.expanduser("~"), ".krosdownloadmanager", "temp")
         os.makedirs(self.temp_dir, exist_ok=True)
@@ -139,6 +175,7 @@ class DownloadEngine:
         self.max_concurrent = max_concurrent_downloads
         self.default_connections = default_connections
         self.global_speed_limit = speed_limit
+        self.proxy = proxy
 
         self.downloads: dict[str, DownloadItem] = {}
         self._stop_events: dict[str, threading.Event] = {}
@@ -146,19 +183,55 @@ class DownloadEngine:
         self._lock = threading.Lock()
         self._download_pool = ThreadPoolExecutor(max_workers=max_concurrent_downloads)
         self._active_futures: dict[str, object] = {}
+        self._scheduler_thread: Optional[threading.Thread] = None
+        self._scheduler_stop = threading.Event()
 
         self.on_progress: Optional[Callable] = None
         self.on_status_change: Optional[Callable] = None
         self.on_complete: Optional[Callable] = None
         self.on_error: Optional[Callable] = None
 
+        self._cleanup_orphaned_temp()
+        self._start_scheduler()
+
+    def _create_session(self) -> requests.Session:
+        """Create a requests session with retry and proxy support."""
+        session = requests.Session()
+        retry = Retry(total=3, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504])
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+        session.headers["User-Agent"] = self.USER_AGENT
+        session.headers["Accept-Encoding"] = "identity"
+        if self.proxy:
+            session.proxies = {"http": self.proxy, "https": self.proxy}
+        return session
+
+    def _start_scheduler(self) -> None:
+        """Start the background scheduler that checks for scheduled downloads."""
+        def scheduler_loop():
+            while not self._scheduler_stop.is_set():
+                now = time.strftime("%Y-%m-%d %H:%M")
+                for download_id, item in list(self.downloads.items()):
+                    if (
+                        item.status == DownloadStatus.QUEUED
+                        and item.scheduled_time
+                        and item.scheduled_time <= now
+                    ):
+                        item.scheduled_time = ""
+                        self.start_download(download_id)
+                self._scheduler_stop.wait(30)
+
+        self._scheduler_thread = threading.Thread(target=scheduler_loop, daemon=True)
+        self._scheduler_thread.start()
+
     def get_file_info(self, url: str) -> dict:
         """Fetch file info (size, resume support, filename) from URL."""
-        headers = {"User-Agent": self.USER_AGENT}
+        session = self._create_session()
         try:
-            resp = requests.head(url, headers=headers, allow_redirects=True, timeout=15)
+            resp = session.head(url, allow_redirects=True, timeout=15)
             if resp.status_code >= 400:
-                resp = requests.get(url, headers=headers, stream=True, allow_redirects=True, timeout=15)
+                resp = session.get(url, stream=True, allow_redirects=True, timeout=15)
 
             file_size = int(resp.headers.get("Content-Length", 0))
             accept_ranges = resp.headers.get("Accept-Ranges", "none").lower()
@@ -183,6 +256,8 @@ class DownloadEngine:
                 "url": url,
                 "error": str(e),
             }
+        finally:
+            session.close()
 
     def add_download(
         self,
@@ -194,10 +269,21 @@ class DownloadEngine:
         speed_limit: int = 0,
     ) -> DownloadItem:
         """Add a new download to the queue."""
+        resolved_filename = ""
+        if needs_resolution(url):
+            logger.info("Resolving indirect URL: %s", url)
+            result = resolve_url(url, proxy=self.proxy)
+            if result.get("resolved"):
+                url = result["url"]
+                resolved_filename = result.get("filename", "")
+                logger.info("Resolved to direct URL: %s", url)
+            elif result.get("error"):
+                logger.warning("URL resolution failed: %s", result["error"])
+
         info = self.get_file_info(url)
 
         if not filename:
-            filename = info["filename"]
+            filename = resolved_filename or info["filename"]
 
         actual_url = info.get("url", url)
 
@@ -334,66 +420,80 @@ class DownloadEngine:
                     self.on_error(item)
 
     def _single_connection_download(self, item: DownloadItem, temp_dir: str) -> None:
-        """Download with a single connection."""
+        """Download with a single connection and exponential backoff retry."""
         stop_event = self._stop_events[item.id]
         pause_event = self._pause_events[item.id]
-
-        headers = {"User-Agent": self.USER_AGENT}
+        session = self._create_session()
         temp_file = os.path.join(temp_dir, f"{item.filename}.part")
-        mode = "ab"
-        existing_size = 0
 
-        if os.path.exists(temp_file):
-            existing_size = os.path.getsize(temp_file)
-            if item.supports_resume and existing_size > 0:
-                headers["Range"] = f"bytes={existing_size}-"
-                item.downloaded_bytes = existing_size
+        retries = 0
+        while retries < self.MAX_RETRIES and not stop_event.is_set():
+            try:
+                headers: dict[str, str] = {}
+                mode = "ab"
+                existing_size = 0
 
-        try:
-            resp = requests.get(item.url, headers=headers, stream=True, timeout=30)
-            if resp.status_code == 416:
-                item.downloaded_bytes = item.file_size
-                item.progress = 100.0
+                if os.path.exists(temp_file):
+                    existing_size = os.path.getsize(temp_file)
+                    if item.supports_resume and existing_size > 0:
+                        headers["Range"] = f"bytes={existing_size}-"
+                        item.downloaded_bytes = existing_size
+
+                resp = session.get(item.url, headers=headers, stream=True, timeout=30)
+                if resp.status_code == 416:
+                    item.downloaded_bytes = item.file_size
+                    item.progress = 100.0
+                    self._finalize_download(item, temp_file)
+                    return
+
+                resp.raise_for_status()
+
+                if item.file_size == 0:
+                    item.file_size = int(resp.headers.get("Content-Length", 0)) + existing_size
+
+                speed_tracker = _SpeedTracker()
+
+                with open(temp_file, mode) as f:
+                    for chunk in resp.iter_content(chunk_size=self.CHUNK_SIZE):
+                        if stop_event.is_set():
+                            return
+
+                        pause_event.wait()
+
+                        if stop_event.is_set():
+                            return
+
+                        if chunk:
+                            f.write(chunk)
+                            chunk_len = len(chunk)
+                            item.downloaded_bytes += chunk_len
+                            speed_tracker.add(chunk_len)
+
+                            if item.file_size > 0:
+                                item.progress = (item.downloaded_bytes / item.file_size) * 100
+
+                            item.speed = speed_tracker.speed
+                            item.eta = self._calculate_eta(item)
+                            self._notify_progress(item)
+
+                            if item.speed_limit > 0:
+                                self._apply_speed_limit(item.speed_limit, speed_tracker)
+
                 self._finalize_download(item, temp_file)
                 return
 
-            resp.raise_for_status()
-
-            if item.file_size == 0:
-                item.file_size = int(resp.headers.get("Content-Length", 0)) + existing_size
-
-            speed_tracker = _SpeedTracker()
-
-            with open(temp_file, mode) as f:
-                for chunk in resp.iter_content(chunk_size=self.CHUNK_SIZE):
-                    if stop_event.is_set():
-                        return
-
-                    pause_event.wait()
-
-                    if stop_event.is_set():
-                        return
-
-                    if chunk:
-                        f.write(chunk)
-                        chunk_len = len(chunk)
-                        item.downloaded_bytes += chunk_len
-                        speed_tracker.add(chunk_len)
-
-                        if item.file_size > 0:
-                            item.progress = (item.downloaded_bytes / item.file_size) * 100
-
-                        item.speed = speed_tracker.speed
-                        item.eta = self._calculate_eta(item)
-                        self._notify_progress(item)
-
-                        if item.speed_limit > 0:
-                            self._apply_speed_limit(item.speed_limit, speed_tracker)
-
-            self._finalize_download(item, temp_file)
-
-        except requests.RequestException as e:
-            raise RuntimeError(f"Download error: {e}") from e
+            except requests.RequestException as e:
+                retries += 1
+                if retries >= self.MAX_RETRIES:
+                    raise RuntimeError(f"Download failed after {self.MAX_RETRIES} retries: {e}") from e
+                delay = self.RETRY_DELAY * (2 ** (retries - 1))  # exponential backoff
+                logger.warning(
+                    "Retry %d/%d for %s (waiting %.1fs): %s",
+                    retries, self.MAX_RETRIES, item.filename, delay, e,
+                )
+                time.sleep(delay)
+            finally:
+                session.close()
 
     def _multi_segment_download(self, item: DownloadItem, temp_dir: str) -> None:
         """Download with multiple connections (segments)."""
@@ -430,19 +530,21 @@ class DownloadEngine:
         speed_tracker = _SpeedTracker()
         segment_lock = threading.Lock()
 
+        session = self._create_session()
+
         def download_segment(seg: DownloadSegment) -> None:
             if seg.completed or stop_event.is_set():
                 return
 
             headers = {
-                "User-Agent": self.USER_AGENT,
                 "Range": f"bytes={seg.start}-{seg.end}",
+                "Accept-Encoding": "identity",
             }
 
             retries = 0
             while retries < self.MAX_RETRIES and not stop_event.is_set():
                 try:
-                    resp = requests.get(item.url, headers=headers, stream=True, timeout=30)
+                    resp = session.get(item.url, headers=headers, stream=True, timeout=30)
                     resp.raise_for_status()
 
                     with open(seg.temp_file, "ab") as f:
@@ -484,12 +586,15 @@ class DownloadEngine:
                     time.sleep(self.RETRY_DELAY * retries)
                     headers["Range"] = f"bytes={seg.start + seg.downloaded}-{seg.end}"
 
-        with ThreadPoolExecutor(max_workers=item.num_connections) as pool:
-            futures = {pool.submit(download_segment, seg): seg for seg in segments if not seg.completed}
-            for future in as_completed(futures):
-                if stop_event.is_set():
-                    return
-                future.result()
+        try:
+            with ThreadPoolExecutor(max_workers=item.num_connections) as pool:
+                futures = {pool.submit(download_segment, seg): seg for seg in segments if not seg.completed}
+                for future in as_completed(futures):
+                    if stop_event.is_set():
+                        return
+                    future.result()
+        finally:
+            session.close()
 
         if stop_event.is_set():
             return
@@ -510,7 +615,7 @@ class DownloadEngine:
         self._finalize_download(item, output_path)
 
     def _finalize_download(self, item: DownloadItem, temp_path: str) -> None:
-        """Move temp file to final location and clean up."""
+        """Move temp file to final location, compute checksums, and clean up."""
         final_path = os.path.join(item.save_path, item.filename)
 
         if os.path.exists(final_path):
@@ -533,6 +638,8 @@ class DownloadEngine:
         if item.file_size == 0:
             item.file_size = item.downloaded_bytes
 
+        self._compute_checksums(item, final_path)
+
         self._notify_status(item)
         self._notify_progress(item)
 
@@ -540,6 +647,40 @@ class DownloadEngine:
             self.on_complete(item)
 
         self._cleanup_temp_files(item.id)
+
+    def _compute_checksums(self, item: DownloadItem, file_path: str) -> None:
+        """Compute MD5 and SHA-256 checksums for a completed download."""
+        try:
+            md5 = hashlib.md5()
+            sha256 = hashlib.sha256()
+            with open(file_path, "rb") as f:
+                while True:
+                    chunk = f.read(self.CHUNK_SIZE * 8)
+                    if not chunk:
+                        break
+                    md5.update(chunk)
+                    sha256.update(chunk)
+            item.checksum_md5 = md5.hexdigest()
+            item.checksum_sha256 = sha256.hexdigest()
+            logger.info("Checksums for %s: MD5=%s SHA256=%s", item.filename, item.checksum_md5, item.checksum_sha256)
+        except OSError as e:
+            logger.warning("Failed to compute checksums for %s: %s", item.filename, e)
+
+    def _cleanup_orphaned_temp(self) -> None:
+        """Remove temp dirs that don't belong to any tracked download on startup."""
+        if not os.path.isdir(self.temp_dir):
+            return
+        import shutil
+        known_ids = set(self.downloads.keys())
+        for entry in os.listdir(self.temp_dir):
+            if entry not in known_ids:
+                path = os.path.join(self.temp_dir, entry)
+                if os.path.isdir(path):
+                    try:
+                        shutil.rmtree(path)
+                        logger.debug("Cleaned orphaned temp dir: %s", entry)
+                    except OSError:
+                        pass
 
     def _cleanup_temp_files(self, download_id: str) -> None:
         """Remove temp files for a download."""
@@ -597,6 +738,8 @@ class DownloadEngine:
 
     def shutdown(self) -> None:
         """Stop all downloads and clean up."""
+        self._scheduler_stop.set()
+
         for download_id in list(self._stop_events.keys()):
             if download_id in self._stop_events:
                 self._stop_events[download_id].set()
