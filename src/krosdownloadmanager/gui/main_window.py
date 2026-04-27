@@ -1195,9 +1195,11 @@ class MainWindow(ctk.CTk):
         config = self.config_manager.config
         download_dir = config.download_dir
         connections = config.default_connections
-        self.engine.add_download(url, download_dir, connections)
-        self._refresh_list()
-        self.status_label.configure(text=t("download_from_extension", url=url[:60]))
+        threading.Thread(
+            target=self._add_download_thread,
+            args=(url, download_dir, "", connections),
+            daemon=True,
+        ).start()
 
     def _set_icon(self) -> None:
         """Set the window icon."""
