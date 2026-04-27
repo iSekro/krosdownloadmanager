@@ -38,7 +38,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "Crear acceso directo en el escritorio"; GroupDescription: "Iconos adicionales:"
 Name: "startupicon"; Description: "Iniciar con Windows"; GroupDescription: "Opciones:"
-Name: "installextension"; Description: "Instalar extension del navegador (Chrome/Edge) para captura de descargas y videos"; GroupDescription: "Extension del navegador:"; Flags: checked
+Name: "installextension"; Description: "Instalar extension del navegador (Chrome/Edge) para captura de descargas y videos"; GroupDescription: "Extension del navegador:"
 
 [Files]
 Source: "dist\KrosDownloadManager.exe"; DestDir: "{app}"; Flags: ignoreversion
