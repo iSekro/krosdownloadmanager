@@ -293,7 +293,7 @@ class ToastNotification(ctk.CTkFrame):
         inner.pack(padx=14, pady=10)
 
         ctk.CTkLabel(
-            inner, text=icon, font=("Segoe UI Emoji", 16), text_color=fg,
+            inner, text=icon, font=(FONT_FAMILY, 14), text_color=fg,
         ).pack(side="left", padx=(0, 8))
 
         ctk.CTkLabel(
@@ -1406,13 +1406,10 @@ class MainWindow(ctk.CTk):
         """Enable URL drag-and-drop onto the window (TkDnD2 if available)."""
         try:
             self.tk.eval("package require tkdnd")
-            self.tk.eval(
-                f'tkdnd::drop_target register {self.download_list._parent_canvas} *'
-            )
-            self.download_list._parent_canvas.bind(
-                "<<Drop>>", self._on_drop,
-            )
-        except tk.TclError:
+            canvas = self.download_list._parent_canvas
+            self.tk.eval(f"tkdnd::drop_target register {canvas} *")
+            canvas.bind("<<Drop>>", self._on_drop)
+        except Exception:
             pass
 
     def _on_drop(self, event) -> None:
@@ -1588,7 +1585,8 @@ class MainWindow(ctk.CTk):
         search_frame.pack_propagate(False)
 
         ctk.CTkLabel(
-            search_frame, text="\U0001F50D", font=("Segoe UI Emoji", 12),
+            search_frame, text="Search:",
+            font=(FONT_FAMILY, 11),
             text_color=COLORS["text_tertiary"],
         ).pack(side="left", padx=(4, 2))
 
@@ -1634,8 +1632,8 @@ class MainWindow(ctk.CTk):
         # Better empty state
         self._empty_frame = ctk.CTkFrame(self.download_list, fg_color="transparent")
         self._empty_icon = ctk.CTkLabel(
-            self._empty_frame, text="\u2B07",
-            font=("Segoe UI Emoji", 40), text_color=COLORS["border_light"],
+            self._empty_frame, text="\u2193",
+            font=(FONT_FAMILY, 40), text_color=COLORS["border_light"],
         )
         self._empty_icon.pack(pady=(30, 8))
         self._empty_label = ctk.CTkLabel(
